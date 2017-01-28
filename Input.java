@@ -18,16 +18,19 @@ public class Input extends JFrame implements ActionListener
     
     Mechanics mech;
     
-    int size = 10;
-    int x = 20;
-    int y = 20;
-    int sand = 200;
+    int size;
+    int x;
+    int y;
+    int sand;
     
     public Input(){
-        this.setBounds(200,200,314,220);
+        this.setBounds(200,200,304,200);
         this.setVisible(true);
         this.setLayout(null);
-        //this.setResizable(false);
+        this.setResizable(false);
+        try{this.setIconImage(new ImageIcon(getClass().getResource("picDone.png")).getImage());} //picWait
+        catch(NullPointerException ex){}
+        
         
         tfx = new JTextField("length of field in x direction");
         tfx.setSize(220,20);
@@ -103,19 +106,27 @@ public class Input extends JFrame implements ActionListener
         bcreate.setVisible(true);
         this.add(bcreate);
         
+        this.repaint();
+        
         
         
         bx.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e)
             {
                 getx();
+                gety();
+                suggestSand();
+                suggestSize();
             }
         });
         
         by.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e){
+                getx();
                 gety();
+                suggestSand();
+                suggestSize();
             }
         });
         
@@ -136,7 +147,7 @@ public class Input extends JFrame implements ActionListener
         bdefault.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e){
-                setDefault();
+                setValues(222,222,74000,2);
             }
         });
         
@@ -148,31 +159,25 @@ public class Input extends JFrame implements ActionListener
         });
     }
     
-    public void reactivate(int x, int y, int size, int sand){
-        this.x = x;
-        tfx.setText(String.valueOf(x));
-        this.y = y;
-        tfy.setText(String.valueOf(x));
-        this.size = size;
-        tfs.setText(String.valueOf(size));
-        this.sand = sand;
-        tfn.setText(String.valueOf(sand));
-        setVisible(true);
-    }
-    
     private void getx(){
         try{
             x = Integer.valueOf(tfx.getText());
+            if(x<1){
+                x = 1;
+            }
         }catch(Exception ex){
-            System.out.println(ex);
+            //System.out.println(ex);
         }
     }
     
     private void gety(){
         try{
             y = Integer.valueOf(tfy.getText());
+            if(y<1){
+                y = 1;
+            }
         }catch(Exception ex){
-            System.out.println(ex);
+            //System.out.println(ex);
         }
     }
     
@@ -180,7 +185,7 @@ public class Input extends JFrame implements ActionListener
         try{
             sand = Integer.valueOf(tfn.getText());
         }catch(Exception ex){
-            System.out.println(ex);
+            //System.out.println(ex);
         }
     }
     
@@ -188,15 +193,19 @@ public class Input extends JFrame implements ActionListener
         try{
             size = Integer.valueOf(tfs.getText());
         }catch(Exception ex){
-            System.out.println(ex);
+            //System.out.println(ex);
         }
     }
     
-    private void setDefault(){
-        tfx.setText("20");
-        tfy.setText("20");
-        tfn.setText("200");
-        tfs.setText("10");
+    public void setValues(int x, int y, int sand, int size){
+        this.x = x;
+        tfx.setText(String.valueOf(x));
+        this.y = y;
+        tfy.setText(String.valueOf(y));
+        this.sand = sand;
+        tfn.setText(String.valueOf(sand));
+        this.size = size;
+        tfs.setText(String.valueOf(size));
     }
     
     private void create(){
@@ -205,7 +214,40 @@ public class Input extends JFrame implements ActionListener
         getsand();
         getsize();
         setVisible(false);
-        mech = new Mechanics(size,x,y,sand,this);
+        mech = new Mechanics(x, y, sand, size);
+    }
+    
+    private void suggestSand(){
+        if(x>y){
+            sand = (int)(y*y*1.5);
+            if(y*y >= 360000){
+                sand = (int)(y*y*1.7); 
+            }else if(y*y >= 1000000){
+                sand = y*y*2;
+            }
+        }else{
+            sand = (int)(x*x*1.5);
+            if(x*x >= 360000){
+                sand = (int)(x*x*1.7); 
+            }else if(x*x >= 1000000){
+                sand = x*x*2;
+            }
+        }
+        tfn.setText(String.valueOf(sand));
+    }
+    
+    private void suggestSize(){
+        int h = (int)(600/y);
+        int w = (int)(600/x);
+        if(h < w){
+            size = h;
+        }else{
+            size = w;
+        }
+        if(x*y >= 360000){
+            size = 1; 
+        }
+        tfs.setText(String.valueOf(size));
     }
     
     public void actionPerformed(ActionEvent e){
