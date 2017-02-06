@@ -15,6 +15,8 @@ public class Input extends JFrame implements ActionListener
     JButton bs;
     JButton bdefault;
     JButton bcreate;
+    JCheckBox cb;
+    JLabel cbl;
     
     Mechanics mech;
     
@@ -22,13 +24,14 @@ public class Input extends JFrame implements ActionListener
     int x;
     int y;
     int sand;
+    boolean forcedcalc;
     
     public Input(){
-        this.setBounds(200,200,304,200);
+        this.setBounds(200,200,304,225);
         this.setVisible(true);
         this.setLayout(null);
         this.setResizable(false);
-        try{this.setIconImage(new ImageIcon(getClass().getResource("picDone.png")).getImage());} //picWait
+        try{this.setIconImage(new ImageIcon(getClass().getResource("pics/picDone.png")).getImage());}
         catch(NullPointerException ex){}
         
         
@@ -91,20 +94,33 @@ public class Input extends JFrame implements ActionListener
         bs.setVisible(true);
         this.add(bs);
         
+        cb = new JCheckBox("force calculation");
+        cb.setSize(20,20);
+        cb.setLocation(5,105); //-5
+        cb.setEnabled(true);
+        cb.setVisible(true);
+        this.add(cb);
+        
+        cbl = new JLabel("force calculation");
+        cbl.setSize(100,20);
+        cbl.setLocation(27,105);
+        cbl.setVisible(true);
+        this.add(cbl);
         
         bdefault = new JButton("Default");
         bdefault.setSize(100,50);
-        bdefault.setLocation(25,110);
+        bdefault.setLocation(25,135);
         bdefault.setEnabled(true);
         bdefault.setVisible(true);
         this.add(bdefault);
         
         bcreate = new JButton("Create");
         bcreate.setSize(100,50);
-        bcreate.setLocation(165,110);
+        bcreate.setLocation(165,135);
         bcreate.setEnabled(true);
         bcreate.setVisible(true);
         this.add(bcreate);
+        
         
         this.repaint();
         
@@ -144,10 +160,16 @@ public class Input extends JFrame implements ActionListener
             }
         });
         
+        cb.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent e){
+                forcedcalc = cb.isSelected();
+            }
+        });
+        
         bdefault.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e){
-                setValues(222,222,74000,2);
+                setValues(2160,2160,74000,2,true);
             }
         });
         
@@ -197,7 +219,7 @@ public class Input extends JFrame implements ActionListener
         }
     }
     
-    public void setValues(int x, int y, int sand, int size){
+    public void setValues(int x, int y, int sand, int size, boolean forcedcalc){
         this.x = x;
         tfx.setText(String.valueOf(x));
         this.y = y;
@@ -206,6 +228,8 @@ public class Input extends JFrame implements ActionListener
         tfn.setText(String.valueOf(sand));
         this.size = size;
         tfs.setText(String.valueOf(size));
+        this.forcedcalc = forcedcalc;
+        cb.setSelected(forcedcalc);
     }
     
     private void create(){
@@ -213,26 +237,28 @@ public class Input extends JFrame implements ActionListener
         gety();
         getsand();
         getsize();
+        forcedcalc = cb.isSelected();
         setVisible(false);
-        mech = new Mechanics(x, y, sand, size);
+        mech = new Mechanics(x, y, sand, size, forcedcalc);
     }
     
     private void suggestSand(){
-        if(x>y){
-            sand = (int)(y*y*1.5);
-            if(y*y >= 360000){
-                sand = (int)(y*y*1.7); 
-            }else if(y*y >= 1000000){
-                sand = y*y*2;
-            }
+        int help = 0;
+        if(x>y){help = y;}
+        else{help = x;}
+        
+        if(help * help >= 2000000){
+            sand = (int)(help * help * 1.9);
+        }else if(help * help >= 1000000){
+            sand = (int)(help * help * 1.8);
+        }else if(help * help >= 500000){
+            sand = (int)(help * help * 1.7); 
+        }else if(help * help >= 200000){
+            sand = (int)(help * help * 1.6);
         }else{
-            sand = (int)(x*x*1.5);
-            if(x*x >= 360000){
-                sand = (int)(x*x*1.7); 
-            }else if(x*x >= 1000000){
-                sand = x*x*2;
-            }
+            sand = (int)(help * help * 1.5);
         }
+        
         tfn.setText(String.valueOf(sand));
     }
     

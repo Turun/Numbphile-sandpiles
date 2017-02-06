@@ -1,8 +1,6 @@
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
@@ -31,14 +29,16 @@ public class Drawing
     Color white    = new Color(255,255,255);
     Color yellow = new Color(0,255,255);
     
-    Color zero  = black;
-    Color one   = new Color(0x66,0x00,0x28);
-    Color two   = new Color(0x99,0x00,0x22);
-    Color three = new Color(0xff,0x00,0x00);
+    final int zero  = black.getRGB();
+    final int one   = new Color(0x66,0x00,0x28).getRGB();
+    final int two   = new Color(0x99,0x00,0x22).getRGB();
+    final int three = new Color(0xff,0x00,0x00).getRGB();
     
     JFrame f;
     BufferedImage img;
     JLabel bild;
+    GridBagLayout gbl;
+    GridBagConstraints gbc;
     
     JPanel buttons;
     JButton back;
@@ -49,16 +49,23 @@ public class Drawing
     int sand;
     int size;
     int iterations;
+    boolean forcedcalc;
     
     int width;
     int height;
     
-    public Drawing(int x, int y, int sand, int size, int iterations){
+    public Drawing(int x, int y, int sand, int size, int iterations, boolean forcedcalc){
         this.size = size;
         this.sand = sand;
         this.xlength = x;
         this.ylength = y;
         this.iterations = iterations;
+        this.forcedcalc = forcedcalc;
+    }
+    
+    public void makeGraphics(){
+        gbl = new GridBagLayout();
+        gbc = new GridBagConstraints();
         
         width = xlength*size;
         height = ylength*size;
@@ -68,12 +75,10 @@ public class Drawing
         f.setLocation(20,20);
         f.setSize(width,height);
         f.setVisible(false);
-        f.setResizable(false);
-        GridBagLayout gbl = new GridBagLayout();
-        GridBagConstraints gbc = new GridBagConstraints();
+        f.setResizable(true);
         f.setLayout(gbl);
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        f.setIconImage(new ImageIcon(getClass().getResource("picDone.png")).getImage());
+        f.setIconImage(new ImageIcon(getClass().getResource("pics/picDone.png")).getImage());
         
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -122,22 +127,10 @@ public class Drawing
         gbl.setConstraints(label, gbc);
         f.getContentPane().add(label);
         
-        
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.gridwidth = 7;
-        gbc.gridheight = 7;
-        gbc.insets = new Insets(5,5,5,0);
-        gbc.fill = GridBagConstraints.BOTH;
-        
-        bild = new JLabel(new ImageIcon(img));
-        gbl.setConstraints(bild, gbc);
-        f.getContentPane().add(bild);
-        
+        makeBufferedImage();
         
         f.pack();
         f.setVisible(true);
-        
         
         back.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
@@ -145,7 +138,7 @@ public class Drawing
                 img = null;
                 f = null;
                 Input in = new Input();
-                in.setValues(x, y, sand, size);
+                in.setValues(xlength, ylength, sand, size, forcedcalc);
             }
         });
         
@@ -157,11 +150,11 @@ public class Drawing
     }
     
     public void update(int pos, int i){
-        int c = black.getRGB();
-        if(i == 0){c = zero.getRGB();}
-        if(i == 1){c = one.getRGB();}
-        if(i == 2){c = two.getRGB();}
-        if(i == 3){c = three.getRGB();}
+        int c = zero;
+        if(i == 0){c = zero;}
+        if(i == 1){c = one;}
+        if(i == 2){c = two;}
+        if(i == 3){c = three;}
         
         int x = pos % xlength;
         int y = (int)(pos / xlength);
@@ -173,11 +166,11 @@ public class Drawing
     }
     
     public void update2(int pos, int i){
-        int c = black.getRGB();
-        if(i == 0){c = zero.getRGB();}
-        if(i == 1){c = one.getRGB();}
-        if(i == 2){c = two.getRGB();}
-        if(i == 3){c = three.getRGB();}
+        int c = zero;
+        if(i == 0){c = zero;}
+        if(i == 1){c = one;}
+        if(i == 2){c = two;}
+        if(i == 3){c = three;}
         
         int x = pos % xlength;
         int y = (int)(pos / xlength);
@@ -185,19 +178,32 @@ public class Drawing
     }
     
     public void repaint(){
-        bild.repaint();
+        f.pack();
         f.repaint();
         f.requestFocus();
     }
     
+    public void makeBufferedImage(){
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.gridwidth = 7;
+        gbc.gridheight = 7;
+        gbc.insets = new Insets(5,5,5,5);
+        gbc.fill = GridBagConstraints.BOTH;
+        
+        bild = new JLabel(new ImageIcon(img));
+        gbl.setConstraints(bild, gbc);
+        f.getContentPane().add(bild);
+    }
+    
     public void saveImage(){
         try{
-            String filename = String.valueOf(xlength);
-            filename = filename + "-" + String.valueOf(ylength);
-            filename = filename + "-" + String.valueOf(sand);
-            filename = filename + "-" + String.valueOf(size);
-            filename = filename + "-" + String.valueOf(iterations);
-            filename = filename + ".png";
+            String filename = "pics/";
+            filename += String.valueOf(xlength) + "-";
+            filename += String.valueOf(ylength) + "-";
+            filename += String.valueOf(sand) + "-";
+            filename += String.valueOf(size) + "-";
+            filename += String.valueOf(iterations) + ".png";
             
             ImageIO.write(img, "PNG", new File(filename));
         }catch(IOException e){
@@ -205,6 +211,55 @@ public class Drawing
         }
     }
     
+    public void loadInstant(){
+        try{
+            String filename = "pics/";
+            filename += String.valueOf(xlength) + "-";
+            filename += String.valueOf(ylength) + "-";
+            filename += String.valueOf(sand) + "-";
+            filename += String.valueOf(size) + "-";
+            filename += String.valueOf(iterations) + ".png";
+            
+            img = ImageIO.read(new File(filename));
+        }catch(IOException e){
+            System.out.println(e);
+        }
+        makeBufferedImage();
+        repaint();
+    }
     
+    public int[][] readArray(String filename){
+        int[][] re = {{0,0},{0,0},{0,0}};
+        try{
+            img = ImageIO.read(new File(filename));
+            int oldSize = Integer.valueOf(filename.split("-")[3]);
+            
+            re = new int[(int)(img.getWidth()/oldSize)][(int)(img.getHeight()/oldSize)];
+            for(int col = 0; col<re.length; col++){
+                for(int row = 0; row<re[col].length; row++){
+                    switch(img.getRGB(col,row)){
+                        case(-16777216):{
+                            re[col][row] = 0;
+                        }
+                        case(-10092504):{
+                            re[col][row] = 1;
+                        }
+                        case(-6750174):{
+                            re[col][row] = 2;
+                        }
+                        case(-65536):{
+                            re[col][row] = 3;
+                        }
+                    }
+                }
+            }
+        }catch(IOException e){
+            System.out.println(e);
+        }catch(Exception ex){
+            System.out.println(ex);
+        }
+        
+        return re;
+    }
     
 }
