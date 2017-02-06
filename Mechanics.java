@@ -1,25 +1,8 @@
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.ImageIcon;
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-import java.awt.FlowLayout;
-import java.awt.Color;
-
-import javax.swing.*;
-import java.awt.*;
-import java.util.*;
 public class Mechanics
 {
     Drawing dr;
-    
-    JFrame calc;
-    JFrame draw;
-    JLabel l;
-    JLabel label;
-    JPanel jp;
+    WaitWindow ww;
+    DirSearch dir;
     
     int pile[];
     int xlength;
@@ -27,20 +10,66 @@ public class Mechanics
     int sand;
     int size;
     int iterations;
+    boolean forcedcalc;
     
     
     
-    public Mechanics(int x, int y, int sand, int size){
+    public Mechanics(int x, int y, int sand, int size, boolean forcedcalc){
         this.xlength = x;
         this.ylength = y;
         this.sand = sand;
         this.size = size;
+        this.iterations = 0;
+        this.forcedcalc = forcedcalc;
         
         pile = new int[xlength*ylength];
         
-        setSand();
-        makeWaitWindow();
-        calculate();
+        dir = new DirSearch();
+        int expectedIterations = dir.checkPic(xlength,ylength,sand,size);
+        String filenameIncomplete = dir.getUncompletedName(xlength, ylength, sand, size);
+        String filenameSmaller = dir.getNextSmallerPic(xlength, ylength, sand, size);
+        
+        /**
+         * forcedcalc                           true/false
+         * filename (incomplete)                foundNothing / filename
+         * expectedIterations (finished pic)    0 / !0
+         * filename (smaller)                   0-0-0-0-0.png / filename
+         * 
+         *                                      ______________________||____________________
+         *                                     /                                            \
+         *ei:                         ________0________                                      !0
+         *                           /                 \                                     ||
+         *fnI              ____foundN_____              name                              load, pic
+         *                /               \              ||
+         *fc        _false_               true       load, calc   
+         *         /       \               ||  
+         *fnS    000        name          calc
+         *       ||          ||
+         *      calc    load, read, calc
+         */
+        
+        if(expectedIterations >= 0){
+            //System.out.println("0");
+            loadInstant(expectedIterations);
+        }else{
+            if(filenameIncomplete.equals("foundNothing")){
+                if(forcedcalc){
+                    //System.out.println("1");
+                    calculate();
+                }else{
+                    if(filenameSmaller.equals("0-0-0-0-0.png")){
+                        //System.out.println("2");
+                        calculate();
+                    }else{
+                        //System.out.println("3");
+                        makeFromSmaller(expectedIterations, filenameSmaller);
+                    }
+                }
+            }else{
+                //System.out.println("4");
+                makeFromUncompleted(filenameIncomplete);
+            }
+        }
     }
     
     private void setSand(){
@@ -67,115 +96,72 @@ public class Mechanics
         }
     }
     
-    private void makeWaitWindow(){
-        calc = new JFrame("Calculating...");
-        calc.setSize(300,300);
-        calc.setLocation(400,300);
-        calc.setVisible(false);
-        calc.setResizable(false);
-        GridBagLayout gblFrame = new GridBagLayout();
-        GridBagConstraints gbcFrame = new GridBagConstraints();
-        calc.setLayout(gblFrame);
-        calc.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        calc.setIconImage(new ImageIcon(getClass().getResource("picCalc.png")).getImage());
-        
-        
-        GridBagLayout gbl = new GridBagLayout();
-        GridBagConstraints gbc = new GridBagConstraints();
-        jp = new JPanel();
-        jp.setLayout(gbl);
-        jp.setVisible(true);
-        
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 1;
-        gbc.gridheight = 1;
-        gbc.insets = new Insets(5,5,5,5);
-        gbc.fill = GridBagConstraints.BOTH;
-        gbc.anchor = GridBagConstraints.FIRST_LINE_START;
-                        
-        gbc.gridy = 0;
-        label = new JLabel("Iterations:");
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-                        
-        gbc.gridy = 1;
-        label = new JLabel("x:");
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-        
-        gbc.gridy = 2;
-        label = new JLabel("y:");
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-        
-        gbc.gridy = 3;
-        label = new JLabel("Sand:");
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-        
-        gbc.gridy = 4;
-        label = new JLabel("Size:");
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-                
-        
-        gbc.gridx = 1;
-                
-        gbc.gridy = 0;
-        l = new JLabel(String.valueOf(iterations));
-        gbl.setConstraints(l, gbc);
-        jp.add(l);
-        
-        gbc.gridy = 1;
-        label = new JLabel(String.valueOf(xlength));
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-        
-        gbc.gridy = 2;
-        label = new JLabel(String.valueOf(ylength));
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-        
-        gbc.gridy = 3;
-        label = new JLabel(String.valueOf(sand));
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-        
-        gbc.gridy = 4;
-        label = new JLabel(String.valueOf(size));
-        gbl.setConstraints(label, gbc);
-        jp.add(label);
-        
-        
-        gbcFrame.gridx = 0;
-        gbcFrame.gridy = 0;
-        gbcFrame.gridwidth = 1;
-        gbcFrame.gridheight = 1;
-        gbcFrame.fill = GridBagConstraints.BOTH;
-        gbcFrame.insets = new Insets(45,60,45,60);
-        gblFrame.setConstraints(jp, gbcFrame);
-                
-        calc.add(jp);
-        calc.pack();
-        calc.setLocation(1338-calc.getWidth(),27); //oben rechts ins eck
-        calc.setVisible(true);
-        calc.repaint();
-        jp.update(jp.getGraphics());
-    }
-    
-    private void makeDrawWindow(){
-        draw = new JFrame("Drawing...");
-        draw.setBounds(400,300,300,300);
-        try{draw.setIconImage(new ImageIcon(getClass().getResource("picDraw.png")).getImage());} //picDraw
-        catch(NullPointerException ex){}
-        draw.setResizable(false);
-        draw.setVisible(true);
-    }
-    
     private void calculate(){
+        setSand();
+        ww = new WaitWindow(this);
+        ww.start();
+        iterate();
+    }
+    
+    private void loadInstant(int expectedIterations){
+        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc);
+        dr.makeGraphics();
+        dr.loadInstant();
+    }
+    
+    private void makeFromUncompleted(String filename){
+        ww = new WaitWindow(this);
+        ww.start();
+        pile = dir.getUncompletedArray(filename);
+        dir = null;
+        iterations = Integer.valueOf(filename.split("-")[4].split("\\.")[0]);
+        iterate();
+    }
+    
+    private void makeFromSmaller(int expectedIterations, String filename){
+        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc);
+        int[][] helparr = dr.readArray(filename);
+        //System.out.println(filename);
+        dr = null;
+        
+        mergeGrids(helparr);
+        sand -= Integer.valueOf(filename.split("-")[2]);
+        setSand();
+        sand += Integer.valueOf(filename.split("-")[2]);
+        iterations = Integer.valueOf(filename.split("-")[4].split("\\.")[0])-1;
+        
+        ww = new WaitWindow(this);
+        ww.start();
+        iterate();
+    }
+    
+    private void mergeGrids(int[][] toMerge){
+        int[][] help = new int[xlength][ylength];
+        
+        for(int i = 0; i < pile.length; i++){
+            int x = i % xlength;
+            int y = (int)(i / xlength);
+            help[x][y] = pile[i];
+        }
+        
+        int xoff = (int)((help.length - toMerge.length) * 0.5);
+        int yoff = (int)((help[0].length - toMerge[0].length) * 0.5);
+        
+        for(int x = 0; x<toMerge.length; x++){
+            for(int y = 0; y<toMerge[x].length; y++){
+                help[x+xoff][y+yoff] = toMerge[x][y];
+            }
+        }
+        
+        for(int a = 0; a < pile.length; a++){
+            int x = a % xlength;
+            int y = (int)(a / xlength);
+            pile[a] = help[x][y];
+        }
+    }
+    
+    private void iterate(){
         boolean dummy;
-        iterations =0;
         while(distribute()){
             dummy = distribute();
             dummy = distribute();
@@ -183,27 +169,32 @@ public class Mechanics
             dummy = distribute();
             dummy = distribute();
             dummy = distribute();
-            updateIterations();
         }
-        calc.dispose();
         
-        makeDrawWindow();
-        dr = new Drawing(xlength, ylength, sand, size, iterations);
+        ww.updating = false;
+        ww.closeWaitWindow();
+        ww.makeDrawWindow();
+        
+        dr = new Drawing(xlength, ylength, sand, size, iterations, forcedcalc);
+        dr.makeGraphics();
         update();
         if(sand > 1000000){
             dr.saveImage();
         }
-        draw.dispose();
+        
+        ww.closeDrawWindow();
     }
     
     private boolean distribute(){
-        iterations++;
         boolean re = false;
         for(int x = 0; x<pile.length; x++){
             if(pile[x] >= 4){
                 split(x);
                 re=true;
             }
+        }
+        if(re){
+            iterations++;
         }
         return re;
     }
@@ -245,11 +236,6 @@ public class Mechanics
             }
         }
         dr.repaint();
-    }
-    
-    private void updateIterations(){
-        l.setText(String.valueOf(iterations));
-        jp.paintImmediately(l.getBounds());
     }
 }
 
