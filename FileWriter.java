@@ -33,20 +33,6 @@ public class FileWriter
         filename += ".txt";
         int[] p = mech.pile;
         
-        /**StringBuilder sb = new StringBuilder(x);
-        sb.append(String.valueOf(p[0]));
-        for(int i = 1; i<p.length; i++){
-            //output += "-" + String.valueOf(p[i]);
-            sb.append("-");
-            sb.append(String.valueOf(p[i]));
-        }
-        
-        try(PrintWriter pw = new PrintWriter(filename)){
-            pw.write(sb.toString());
-        }catch(Exception e){
-            e.printStackTrace();
-            System.out.println(e);
-        }*/
         try(PrintWriter pw = new PrintWriter(filename)){
             for(int a = 0; a<y; a++){
                 StringBuilder sb = new StringBuilder(x);

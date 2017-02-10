@@ -35,6 +35,7 @@ public class WaitWindow extends Thread
     int y;
     int sand;
     int size;
+    int iterations;
     
     boolean updating = true;
     
@@ -50,10 +51,14 @@ public class WaitWindow extends Thread
     public void run(){
         fw = new FileWriter(mech);
         makeWaitWindow();
-        byte i = 0;
+        int i = 0;
         while(updating){
             update();
-            if(++i == 0){
+            if(iterations - i > 10000){
+                i = iterations;
+                mech.warte();
+                try{this.sleep(100);}
+                catch(InterruptedException e){}
                 fw.saveToFile();
             }
             try{
@@ -66,7 +71,7 @@ public class WaitWindow extends Thread
     }
     
     private void update(){
-        l10.setText(String.valueOf(mech.iterations));
+        l10.setText(String.valueOf(iterations = mech.iterations));
         jp.paintImmediately(l00.getBounds());
         jp.paintImmediately(l01.getBounds());
         jp.paintImmediately(l02.getBounds());
