@@ -247,22 +247,6 @@ public class Mechanics extends Thread
         dr.repaint();
     }
     
-    public void printYourStack(){
-        for(StackTraceElement el : Thread.currentThread().getStackTrace()){
-            System.out.println(String.valueOf(el));
-        }
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        Throwable th = new Throwable();
-        for(java.lang.StackTraceElement el : th.getStackTrace()){
-            System.out.println(String.valueOf(el));
-        }
-        System.out.println();
-        System.out.println();
-        System.out.println();
-    }
-    
     public void warte(){
         warte = true;
     }

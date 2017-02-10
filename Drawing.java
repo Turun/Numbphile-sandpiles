@@ -165,14 +165,7 @@ public class Drawing extends MouseAdapter implements KeyListener
             
             img = ImageIO.read(new File(filename));
         }catch(IOException e){
-            System.out.println(filename);
-            System.out.println();
-            System.out.println();
-            System.out.println(e);
-            System.out.println();
-            System.out.println();
-            System.out.println();
-            e.printStackTrace();
+            redirectToNewFrame();
         }
         makeBufferedImage();
         repaint();
@@ -285,17 +278,7 @@ public class Drawing extends MouseAdapter implements KeyListener
         
         back.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
-                f.setVisible(false);
-                img = null;
-                f = null;
-                if(origin.equals("input")){
-                    Input in = new Input();
-                    in.setValues(xlength, ylength, sand, size, forcedcalc);
-                }else if(origin.equals("pics")){
-                    List li = new List(false, xlength, ylength, sand, size, forcedcalc);
-                }else if(origin.equals("incomplete")){
-                    List li = new List(true, xlength, ylength, sand, size, forcedcalc);
-                }
+                redirectToNewFrame();
             }
         });
         
@@ -306,6 +289,19 @@ public class Drawing extends MouseAdapter implements KeyListener
         });
     }
     
+    private void redirectToNewFrame(){
+        f.setVisible(false);
+        img = null;
+        f = null;
+        if(origin.equals("input")){
+            Input in = new Input();
+            in.setValues(xlength, ylength, sand, size, forcedcalc);
+        }else if(origin.equals("pics")){
+            List li = new List(false, xlength, ylength, sand, size, forcedcalc);
+        }else if(origin.equals("incomplete")){
+            List li = new List(true, xlength, ylength, sand, size, forcedcalc);
+        }
+    }
     
     public void keyTyped(KeyEvent e){}
     public void keyReleased(KeyEvent e){}
