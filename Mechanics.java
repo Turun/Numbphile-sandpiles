@@ -1,4 +1,5 @@
-public class Mechanics
+import java.util.ArrayList;
+public class Mechanics extends Thread
 {
     Drawing dr;
     WaitWindow ww;
@@ -11,16 +12,19 @@ public class Mechanics
     int size;
     int iterations;
     boolean forcedcalc;
+    String origin;
     
+    boolean warte;
     
-    
-    public Mechanics(int x, int y, int sand, int size, boolean forcedcalc){
+    public Mechanics(int x, int y, int sand, int size, boolean forcedcalc, String origin){
         this.xlength = x;
         this.ylength = y;
         this.sand = sand;
         this.size = size;
         this.iterations = 0;
+        this.origin = origin;
         this.forcedcalc = forcedcalc;
+        this.warte = false;
         
         pile = new int[xlength*ylength];
         
@@ -104,7 +108,7 @@ public class Mechanics
     }
     
     private void loadInstant(int expectedIterations){
-        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc);
+        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc, origin);
         dr.makeGraphics();
         dr.loadInstant();
     }
@@ -119,7 +123,7 @@ public class Mechanics
     }
     
     private void makeFromSmaller(int expectedIterations, String filename){
-        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc);
+        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc, origin);
         int[][] helparr = dr.readArray(filename);
         //System.out.println(filename);
         dr = null;
@@ -169,13 +173,18 @@ public class Mechanics
             dummy = distribute();
             dummy = distribute();
             dummy = distribute();
+            if(warte){
+                try{this.sleep(300);}
+                catch(InterruptedException e){}
+                warte = false;
+            }
         }
         
         ww.updating = false;
         ww.closeWaitWindow();
         ww.makeDrawWindow();
         
-        dr = new Drawing(xlength, ylength, sand, size, iterations, forcedcalc);
+        dr = new Drawing(xlength, ylength, sand, size, iterations, forcedcalc, origin);
         dr.makeGraphics();
         update();
         if(sand > 1000000){
@@ -236,6 +245,10 @@ public class Mechanics
             }
         }
         dr.repaint();
+    }
+    
+    public void warte(){
+        warte = true;
     }
 }
 
