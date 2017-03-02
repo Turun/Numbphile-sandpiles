@@ -167,6 +167,7 @@ public class Mechanics extends Thread
     
     private void iterate(){
         boolean dummy;
+        fw = new FileWriter(this);
         while(distribute()){
             if(save){
                 save = false;
@@ -177,6 +178,8 @@ public class Mechanics extends Thread
                 catch(InterruptedException e){}
             }
         }
+        fw.deleteFile();
+        fw = null;
         
         ww.updating = false;
         ww.closeWaitWindow();
