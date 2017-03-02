@@ -12,6 +12,8 @@ import java.awt.GridBagConstraints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import java.lang.Math;
+
 public class Input
 {
     JTextField tfx;     //x length
@@ -167,28 +169,30 @@ public class Input
                 getx();
                 gety();
                 suggestSand();
-                suggestSize();}});
+                suggestBlockSize();}});
         tfx.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
                 getx();
                 gety();
                 suggestSand();
-                suggestSize();}});
+                suggestBlockSize();}});
         
         by.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
                 getx();
                 gety();
                 suggestSand();
-                suggestSize();}});
+                suggestBlockSize();}});
         tfy.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
                 getx();
                 gety();
                 suggestSand();
-                suggestSize();}});
+                suggestBlockSize();}});
         
         bn.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
-                getsand();}});
+                getsand();
+                suggestSize();}});
         tfn.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
-                getsand();}});
+                getsand();
+                suggestSize();}});
         
         bs.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
                 getsize();}});
@@ -309,20 +313,12 @@ public class Input
         if(x>y){help = y;}
         else{help = x;}
         
-        if(help * help >= 1000000){
-            sand = (int)(help * help * 1.8);
-        }else if(help * help >= 500000){
-            sand = (int)(help * help * 1.7); 
-        }else if(help * help >= 200000){
-            sand = (int)(help * help * 1.6);
-        }else{
-            sand = (int)(help * help * 1.5);
-        }
+        sand = (int)((1.75 * (help * help)) - 10);
         
         tfn.setText(String.valueOf(sand));
     }
     
-    private void suggestSize(){
+    private void suggestBlockSize(){
         if(x > 0 & y > 0){
             int h = (int)(600/y)+1;
             int w = (int)(600/x)+1;
@@ -333,6 +329,16 @@ public class Input
             }
             tfs.setText(String.valueOf(size));
         }
+    }
+    
+    private void suggestSize(){
+        //double help = Math.sqrt((sand-10)*0.142857*4);
+        double help = 0.755928946 * Math.sqrt(sand-10);
+        //System.out.println(help);
+        x = (int)help;
+        y = (int)help;
+        tfx.setText(String.valueOf(x));
+        tfy.setText(String.valueOf(y));
     }
     
     public static void main(String[] args){

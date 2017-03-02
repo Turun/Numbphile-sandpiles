@@ -30,7 +30,6 @@ public class WaitWindow extends Thread
     private JPanel jp;
     
     private Mechanics mech;
-    private FileWriter fw;
     int x;
     int y;
     int sand;
@@ -49,24 +48,18 @@ public class WaitWindow extends Thread
     }
     
     public void run(){
-        fw = new FileWriter(mech);
         makeWaitWindow();
         int i = 0;
         while(updating){
             update();
             if(iterations - i > 10000){
                 i = iterations;
-                mech.warte();
-                try{this.sleep(100);}
-                catch(InterruptedException e){}
-                fw.saveToFile();
+                mech.save = true;
             }
             try{
                 this.sleep(70);
             }catch(InterruptedException e){}
         }
-        fw.deleteFile();
-        fw = null;
         calc.dispose();
     }
     
@@ -100,6 +93,7 @@ public class WaitWindow extends Thread
         catch(NullPointerException ex){}
         draw.setResizable(false);
         draw.setVisible(true);
+        draw.requestFocus();
     }
     
     private void makeWaitWindow(){
