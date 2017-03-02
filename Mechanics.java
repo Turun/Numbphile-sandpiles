@@ -4,6 +4,7 @@ public class Mechanics extends Thread
     Drawing dr;
     WaitWindow ww;
     DirSearch dir;
+    FileWriter fw;
     
     int pile[];
     int xlength;
@@ -14,7 +15,7 @@ public class Mechanics extends Thread
     boolean forcedcalc;
     String origin;
     
-    boolean warte;
+    boolean save;
     
     public Mechanics(int x, int y, int sand, int size, boolean forcedcalc, String origin){
         this.xlength = x;
@@ -24,7 +25,7 @@ public class Mechanics extends Thread
         this.iterations = 0;
         this.origin = origin;
         this.forcedcalc = forcedcalc;
-        this.warte = false;
+        this.save = false;
         
         pile = new int[xlength*ylength];
         
@@ -167,16 +168,13 @@ public class Mechanics extends Thread
     private void iterate(){
         boolean dummy;
         while(distribute()){
-            dummy = distribute();
-            dummy = distribute();
-            dummy = distribute();
-            dummy = distribute();
-            dummy = distribute();
-            dummy = distribute();
-            if(warte){
-                try{this.sleep(300);}
+            if(save){
+                save = false;
+                try{this.sleep(10+(int)(xlength*ylength/10000));}
                 catch(InterruptedException e){}
-                warte = false;
+                fw.saveToFile();
+                try{this.sleep(10+(int)(xlength*ylength/10000));}
+                catch(InterruptedException e){}
             }
         }
         
@@ -245,10 +243,6 @@ public class Mechanics extends Thread
             }
         }
         dr.repaint();
-    }
-    
-    public void warte(){
-        warte = true;
     }
 }
 

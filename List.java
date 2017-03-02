@@ -205,7 +205,7 @@ public class List{
     private void makeWindow(){
         f = new JFrame("Choose a file");
         f.setLayout(new BorderLayout());
-        f.setBounds(150,150,100,100);
+        f.setBounds(50,50,100,100);
         f.setResizable(true);
         f.setVisible(false);
         try{f.setIconImage(new ImageIcon(getClass().getResource("pics/picDone.png")).getImage());}
