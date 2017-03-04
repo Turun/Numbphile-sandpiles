@@ -23,15 +23,16 @@ public class Input
     
     JFrame f;
     JPanel inpt;
-    JPanel buttons;
+    JPanel buttons;/**
     JButton bx;
     JButton by;
     JButton bn;
     JButton bs;
+    JButton boptions;
     JButton bdefault;
     JButton bcreate;
     JButton bList;
-    JButton bPics;
+    JButton bPics;*/
     JCheckBox cb;
     
     GridBagLayout gbl;
@@ -44,6 +45,7 @@ public class Input
     int x;
     int y;
     int sand;
+    int[] clrs = {-16777216, -10092504, -6750174, -65536};
     boolean forcedcalc;
     
     public Input(){
@@ -100,25 +102,29 @@ public class Input
         gbc.gridwidth = 1;
         
         gbc.gridy = 0;
-        bx = new JButton("ok");
+        JButton bx = new JButton("ok");
         gbl.setConstraints(bx, gbc);
         inpt.add(bx);
         
         gbc.gridy = 1;
-        by = new JButton("ok");
+        JButton by = new JButton("ok");
         gbl.setConstraints(by, gbc);
         inpt.add(by);
         
         gbc.gridy = 2;
-        bn = new JButton("ok");
+        JButton bn = new JButton("ok");
         gbl.setConstraints(bn, gbc);
         inpt.add(bn);
         
         gbc.gridy = 3;
-        bs = new JButton("ok");
+        JButton bs = new JButton("ok");
         gbl.setConstraints(bs, gbc);
         inpt.add(bs);
         
+        gbc.gridy = 4;
+        JButton boptions = new JButton("Options");
+        gbl.setConstraints(boptions, gbc);
+        inpt.add(boptions);
         
         buttons = new JPanel();
         buttons.setLayout(gbl);
@@ -126,23 +132,23 @@ public class Input
         gbc.gridy = 0;
         gbc.gridwidth = 1;
         
-        bList = new JButton("Complete an old one");
+        JButton bList = new JButton("Complete an old one");
         gbl.setConstraints(bList, gbc);
         buttons.add(bList);
         
         gbc.gridy = 1;
-        bdefault = new JButton("Default");
+        JButton bdefault = new JButton("Default");
         gbl.setConstraints(bdefault, gbc);
         buttons.add(bdefault);
         
         gbc.gridy = 0;
         gbc.gridx = 1;
-        bPics = new JButton("View completed");
+        JButton bPics = new JButton("View completed");
         gbl.setConstraints(bPics, gbc);
         buttons.add(bPics);
         
         gbc.gridy = 1;
-        bcreate = new JButton("Create");
+        JButton bcreate = new JButton("Create");
         gbl.setConstraints(bcreate, gbc);
         buttons.add(bcreate);
         
@@ -202,9 +208,13 @@ public class Input
         cb.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
                 forcedcalc = cb.isSelected();}});
         
+                
+        boptions.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
+            makeOptions();}});
         
         bdefault.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
-                setValues(2160,2160,74000,2,true);}});
+            setValues(2160,2160,74000,2,true);
+            setColors(-65536,-6750174,-10092504,-16777216);}});
         
         bcreate.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
                 create();}});
@@ -283,6 +293,17 @@ public class Input
         cb.setSelected(forcedcalc);
     }
     
+    public void setColors(int[] clrs){
+        this.clrs = clrs;
+    }
+    
+    public void setColors(int zero, int one, int two, int three){
+        clrs[0] = zero;
+        clrs[1] = one;
+        clrs[2] = two;
+        clrs[3] = three;
+    }
+    
     private void create(){
         getx();
         gety();
@@ -292,7 +313,7 @@ public class Input
         if(x>0 & y>0 & sand>0 & size>0){
             f.setVisible(false);
             f.dispose();
-            mech = new Mechanics(x, y, sand, size, forcedcalc, "input");
+            mech = new Mechanics(x, y, sand, size, forcedcalc, "input", clrs);
         }
     }
     
@@ -305,7 +326,11 @@ public class Input
         
         f.setVisible(false);
         f.dispose();
-        list = new List(incomplete, x, y, sand, size, forcedcalc);
+        list = new List(incomplete, x, y, sand, size, forcedcalc, clrs);
+    }
+    
+    private void makeOptions(){
+        Options opt = new Options(clrs, this);
     }
     
     private void suggestSand(){

@@ -1,4 +1,4 @@
-import java.util.ArrayList;
+//import java.util.ArrayList;
 public class Mechanics extends Thread
 {
     Drawing dr;
@@ -11,21 +11,25 @@ public class Mechanics extends Thread
     int ylength;
     int sand;
     int size;
+    int[] clrs;
     int iterations;
     boolean forcedcalc;
     String origin;
     
     boolean save;
+    boolean close;
     
-    public Mechanics(int x, int y, int sand, int size, boolean forcedcalc, String origin){
+    public Mechanics(int x, int y, int sand, int size, boolean forcedcalc, String origin, int[] clrs){
         this.xlength = x;
         this.ylength = y;
         this.sand = sand;
         this.size = size;
+        this.clrs = clrs;
         this.iterations = 0;
         this.origin = origin;
         this.forcedcalc = forcedcalc;
         this.save = false;
+        this.close = false;
         
         pile = new int[xlength*ylength];
         
@@ -109,7 +113,7 @@ public class Mechanics extends Thread
     }
     
     private void loadInstant(int expectedIterations){
-        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc, origin);
+        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc, origin, clrs);
         dr.makeGraphics();
         dr.loadInstant();
     }
@@ -124,7 +128,7 @@ public class Mechanics extends Thread
     }
     
     private void makeFromSmaller(int expectedIterations, String filename){
-        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc, origin);
+        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc, origin, clrs);
         int[][] helparr = dr.readArray(filename);
         //System.out.println(filename);
         dr = null;
@@ -171,28 +175,31 @@ public class Mechanics extends Thread
         while(distribute()){
             if(save){
                 save = false;
-                try{this.sleep(10+(int)(xlength*ylength/10000));}
-                catch(InterruptedException e){}
-                fw.saveToFile();
-                try{this.sleep(10+(int)(xlength*ylength/10000));}
-                catch(InterruptedException e){}
+                saveToFile();
             }
+            if(close){System.out.println("we are here");break;}
         }
-        fw.deleteFile();
-        fw = null;
         
-        ww.updating = false;
+        if(close){
+            saveToFile();
+        }else{
+            fw.deleteFile();
+            
+            ww.updating = false;
+            ww.closeWaitWindow();
+            ww.makeDrawWindow();
+            
+            dr = new Drawing(xlength, ylength, sand, size, iterations, forcedcalc, origin, clrs);
+            dr.makeGraphics();
+            update();
+            if(sand > 1000000){
+                dr.saveImage();
+            }
+            
+            ww.closeDrawWindow();
+        }
         ww.closeWaitWindow();
-        ww.makeDrawWindow();
-        
-        dr = new Drawing(xlength, ylength, sand, size, iterations, forcedcalc, origin);
-        dr.makeGraphics();
-        update();
-        if(sand > 1000000){
-            dr.saveImage();
-        }
-        
-        ww.closeDrawWindow();
+        fw = null;
     }
     
     private boolean distribute(){
@@ -246,6 +253,14 @@ public class Mechanics extends Thread
             }
         }
         dr.repaint();
+    }
+    
+    public void saveToFile(){
+        try{this.sleep(10+(int)(xlength*ylength/10000));}
+        catch(InterruptedException e){}
+        fw.saveToFile();
+        try{this.sleep(10+(int)(xlength*ylength/10000));}
+        catch(InterruptedException e){}
     }
 }
 
