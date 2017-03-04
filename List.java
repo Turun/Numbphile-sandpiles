@@ -43,9 +43,10 @@ public class List{
     int y;
     int sand;
     int size;
+    int[] clrs;
     boolean forcedcalc;
     
-    public List(boolean incomplete, int x, int y, int sand, int size, boolean forcedcalc){
+    public List(boolean incomplete, int x, int y, int sand, int size, boolean forcedcalc, int[] clrs){
         if(incomplete){
             dir = new File("./Incomplete");
         }else{
@@ -56,6 +57,7 @@ public class List{
         this.y = y;
         this.sand = sand;
         this.size = size;
+        this.clrs = clrs;
         this.forcedcalc = forcedcalc;
         this.positiveSort = true;
         
@@ -68,15 +70,15 @@ public class List{
     }
     
     private void openFile(int[] arr){
-        f.setVisible(false);
-        f.dispose();
         if(incomplete){
-            Mechanics mech = new Mechanics(arr[0], arr[1], arr[2], arr[3], forcedcalc, "incomplete");
+            Mechanics mech = new Mechanics(arr[0], arr[1], arr[2], arr[3], forcedcalc, "incomplete", clrs);
         }else{
-            Drawing dr = new Drawing(arr[0], arr[1], arr[2], arr[3], arr[4], forcedcalc, "pics");
+            Drawing dr = new Drawing(arr[0], arr[1], arr[2], arr[3], arr[4], forcedcalc, "pics", clrs);
             dr.makeGraphics();
             dr.loadInstant();
         }
+        f.setVisible(false);
+        f.dispose();
     }
     
     private void makeList(){
@@ -157,6 +159,7 @@ public class List{
                 f.dispose();
                 Input in = new Input();
                 in.setValues(x,y,sand,size,forcedcalc);
+                in.setColors(clrs);
             }
         });
         header.add(back);
