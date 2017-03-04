@@ -8,7 +8,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.event.MouseAdapter;
 
 import javax.swing.JFrame;
@@ -27,9 +26,10 @@ import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 
+import java.io.RandomAccessFile;
+import java.io.FileOutputStream;
 import java.io.File;
 import java.io.IOException;
-import javax.imageio.ImageIO;
 
 public class Drawing extends MouseAdapter implements KeyListener
 {
@@ -40,10 +40,10 @@ public class Drawing extends MouseAdapter implements KeyListener
     Color white    = new Color(255,255,255);
     Color yellow = new Color(0,255,255);
     
-    private static final int zero  = new Color(0x00,0x00,0x00).getRGB();
-    private static final int one   = new Color(0x66,0x00,0x28).getRGB();
-    private static final int two   = new Color(0x99,0x00,0x22).getRGB();
-    private static final int three = new Color(0xff,0x00,0x00).getRGB();
+    private static int zero  = new Color(0x00,0x00,0x00).getRGB();
+    private static int one   = new Color(0x66,0x00,0x28).getRGB();
+    private static int two   = new Color(0x99,0x00,0x22).getRGB();
+    private static int three = new Color(0xff,0x00,0x00).getRGB();
     
     private static final int keyU = KeyEvent.VK_UP;
     private static final int keyR = KeyEvent.VK_RIGHT;
@@ -66,6 +66,7 @@ public class Drawing extends MouseAdapter implements KeyListener
     int ylength;
     int sand;
     int size;
+    int[] clrs;
     int iterations;
     boolean forcedcalc;
     String origin;
@@ -73,7 +74,7 @@ public class Drawing extends MouseAdapter implements KeyListener
     int width;
     int height;
     
-    public Drawing(int x, int y, int sand, int size, int iterations, boolean forcedcalc, String origin){
+    public Drawing(int x, int y, int sand, int size, int iterations, boolean forcedcalc, String origin, int[] clrs){
         this.size = size;
         this.sand = sand;
         this.xlength = x;
@@ -81,6 +82,10 @@ public class Drawing extends MouseAdapter implements KeyListener
         this.origin = origin;
         this.iterations = iterations;
         this.forcedcalc = forcedcalc;
+        this.zero   = clrs[0];
+        this.one    = clrs[1];
+        this.two    = clrs[2];
+        this.three  = clrs[3];
     }
     
     public void update(int pos, int i){
@@ -126,6 +131,7 @@ public class Drawing extends MouseAdapter implements KeyListener
         gbc.insets = new Insets(5,5,5,5);
         gbc.fill = GridBagConstraints.BOTH;
         
+        if(img == null | f == null){makeGraphics();}
         bild = new JLabel(new ImageIcon(img));
         bild.setAutoscrolls(true);
         bild.addMouseListener(this);
@@ -139,32 +145,61 @@ public class Drawing extends MouseAdapter implements KeyListener
     }
     
     public void saveImage(){
-        try{
-            String filename = "pics/";
-            filename += String.valueOf(xlength) + "-";
-            filename += String.valueOf(ylength) + "-";
-            filename += String.valueOf(sand) + "-";
-            filename += String.valueOf(size) + "-";
-            filename += String.valueOf(iterations) + ".png";
-            
-            ImageIO.write(img, "PNG", new File(filename));
+        double length = xlength*ylength*0.25;
+        if(length % 1 != 0){length = (int)(length)+1;}
+        byte[] byteOutArr = new byte[(int)(length)];
+        
+        for(int i = 0; i<byteOutArr.length; i++){byteOutArr[i] = 0;}
+        
+        int iterator = 0;
+        for(int col = 0; col<xlength; col++){
+            for(int row = 0; row<ylength; row++){
+                int color = img.getRGB(col*size,row*size);
+                byte value = 0;
+                if(color == one){value = 1;}
+                else if(color == two){value = 2;}
+                else if(color == three){value = 3;}
+                byteOutArr[(int)(iterator*0.25)] |= (byte)(value << ((3 - iterator % 4)*2));
+                iterator++;
+            }
+        }
+        
+        String filename = "pics/";
+        filename += String.valueOf(xlength) + "-";
+        filename += String.valueOf(ylength) + "-";
+        filename += String.valueOf(sand) + "-";
+        filename += String.valueOf(size) + "-";
+        filename += String.valueOf(iterations) + ".png";
+        
+        try(FileOutputStream out = new FileOutputStream(filename)){
+            out.write(byteOutArr);
         }catch(IOException e){
             System.out.println(e);
+            e.printStackTrace();
         }
     }
     
     public void loadInstant(){
-        String filename = "";
-        try{
-            filename = "pics/";
-            filename += String.valueOf(xlength) + "-";
-            filename += String.valueOf(ylength) + "-";
-            filename += String.valueOf(sand) + "-";
-            filename += String.valueOf(size) + "-";
-            filename += String.valueOf(iterations) + ".png";
+        String filename = "pics/";
+        filename += String.valueOf(xlength) + "-";
+        filename += String.valueOf(ylength) + "-";
+        filename += String.valueOf(sand) + "-";
+        filename += String.valueOf(size) + "-";
+        filename += String.valueOf(iterations) + ".png";
+        File fileToRead = new File(filename);
+        
+        try(RandomAccessFile raf = new RandomAccessFile(filename, "r")){  
+            byte[] inArr = new byte[(int)(fileToRead.length())];
+            raf.readFully(inArr);
             
-            img = ImageIO.read(new File(filename));
-        }catch(IOException e){
+            for(int i = 0; i<inArr.length*4; i++){
+                byte value = (byte)((inArr[(int)(i/4)] >> ((3-(i%4))*2)) & 3);
+                try{update(i, value);}
+                catch(ArrayIndexOutOfBoundsException e){}/**for when the last byte is half empty because x*y%4 != 0*/
+            }
+        }catch(Exception e){//catch(IOException e){
+            System.out.println(e);
+            e.printStackTrace();
             redirectToNewFrame();
         }
         makeBufferedImage();
@@ -172,34 +207,27 @@ public class Drawing extends MouseAdapter implements KeyListener
     }
     
     public int[][] readArray(String filename){
+        
         int[][] re = {{0,0},{0,0},{0,0}};
-        try{
-            img = ImageIO.read(new File(filename));
+        try(RandomAccessFile raf = new RandomAccessFile(filename, "r")){
+            int x = Integer.valueOf(filename.split("-")[0].split("/")[1]);
+            int y = Integer.valueOf(filename.split("-")[1]);
             int oldSize = Integer.valueOf(filename.split("-")[3]);
             
-            re = new int[(int)(img.getWidth()/oldSize)][(int)(img.getHeight()/oldSize)];
-            for(int col = 0; col<re.length; col++){
-                for(int row = 0; row<re[col].length; row++){
-                    switch(img.getRGB(col,row)){
-                        case(-16777216):{
-                            re[col][row] = 0;
-                        }
-                        case(-10092504):{
-                            re[col][row] = 1;
-                        }
-                        case(-6750174):{
-                            re[col][row] = 2;
-                        }
-                        case(-65536):{
-                            re[col][row] = 3;
-                        }
-                    }
+            File fileToRead = new File(filename);
+            byte[] inArr = new byte[(int)(fileToRead.length())];
+            raf.readFully(inArr);
+            
+            
+            re = new int[x][y];
+            for(int col = 0; col<x; col++){
+                for(int row = 0; row<y; row++){
+                    re[col][row] = inArr[col*x+row];
                 }
             }
-        }catch(IOException e){
-            System.out.println(e);
         }catch(Exception ex){
             System.out.println(ex);
+            ex.printStackTrace();
         }
         
         return re;
@@ -236,40 +264,38 @@ public class Drawing extends MouseAdapter implements KeyListener
         gbc.gridy = 0;
         back = new JButton("Back");
         gbl.setConstraints(back, gbc);
-        f.getContentPane().add(back);
-        
-        gbc.insets = new Insets(5,5,5,5);
+        f.add(back);
         
         gbc.gridy = 1;
         photo = new JButton("Save Image");
         gbl.setConstraints(photo, gbc);
-        f.getContentPane().add(photo);
+        f.add(photo);
         
         gbc.gridy = 2;
         JLabel label = new JLabel("Iterations: "+String.valueOf(iterations));
         gbl.setConstraints(label, gbc);
-        f.getContentPane().add(label);
+        f.add(label);
         
         gbc.gridy = 3;
         label = new JLabel("x: "+String.valueOf(xlength));
         gbl.setConstraints(label, gbc);
-        f.getContentPane().add(label);
+        f.add(label);
         
         gbc.gridy = 4;
         label = new JLabel("y: "+String.valueOf(ylength));
         gbl.setConstraints(label, gbc);
-        f.getContentPane().add(label);
+        f.add(label);
         
         gbc.gridy = 5;
         label = new JLabel("Sand: "+String.valueOf(sand));
         gbl.setConstraints(label, gbc);
-        f.getContentPane().add(label);
+        f.add(label);
         
         gbc.fill = GridBagConstraints.NONE;
         gbc.gridy = 6;
         label = new JLabel("Size: "+String.valueOf(size));
         gbl.setConstraints(label, gbc);
-        f.getContentPane().add(label);
+        f.add(label);
         
         makeBufferedImage();
         
@@ -293,13 +319,15 @@ public class Drawing extends MouseAdapter implements KeyListener
         f.setVisible(false);
         img = null;
         f = null;
+        int[] clrs = {zero, one, two ,three};
         if(origin.equals("input")){
             Input in = new Input();
             in.setValues(xlength, ylength, sand, size, forcedcalc);
+            in.setColors(clrs);
         }else if(origin.equals("pics")){
-            List li = new List(false, xlength, ylength, sand, size, forcedcalc);
+            List li = new List(false, xlength, ylength, sand, size, forcedcalc, clrs);
         }else if(origin.equals("incomplete")){
-            List li = new List(true, xlength, ylength, sand, size, forcedcalc);
+            List li = new List(true, xlength, ylength, sand, size, forcedcalc, clrs);
         }
     }
     

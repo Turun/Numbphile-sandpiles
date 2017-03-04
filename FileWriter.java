@@ -33,6 +33,8 @@ public class FileWriter
         filename += ".txt";
         int[] p = mech.pile;
         
+        
+        
         try(PrintWriter pw = new PrintWriter(filename)){
             for(int a = 0; a<y; a++){
                 StringBuilder sb = new StringBuilder(x);
