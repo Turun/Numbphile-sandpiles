@@ -6,34 +6,38 @@ import javax.swing.JPanel;
 
 import java.awt.Color;
 import java.awt.GridLayout;
-import java.awt.Insets;
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
+import java.awt.BorderLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 public class Options
 {
     JFrame f;
-    JPanel jp;
     JTextField[][] jtfs;
     JLabel[] jls;
-    int[] clrs;
     JButton jb;
-    JLabel jl;
-    JLabel warning;
-    JButton back;
     
+    int[] clrs;
+    int x;
+    int y;
+    int sand; 
+    int size;
+    int iterations;
+    int version;
+    boolean forcedcalc;
+    String source;
     
-    GridBagLayout gbl;
-    GridBagConstraints gbc;
-    
-    Input in;
-    
-    public Options(int[] colors, Input in){
+    public Options(int[] clrs, int x, int y, int sand, int size, int iterations, int version, boolean forcedcalc, String source){
         jtfs = new JTextField[3][4];
         jls = new JLabel[4];
-        this.clrs = colors;
-        this.in = in;
+        this.clrs = clrs;
+        this.x = x;
+        this.y = y;
+        this.sand = sand;
+        this.size = size;
+        this.iterations = iterations;
+        this.version = version;
+        this.forcedcalc = forcedcalc;
+        this.source = source;
         makeFrame();
     }
     
@@ -41,8 +45,30 @@ public class Options
         for(int i = 0; i<4; i++){
             updateColor(i);
         }
-        in.setColors(clrs);
+        f.setVisible(false);
+        if(source.equals("input")){
+            Input in = new Input();
+            in.setValues(x, y, sand, size, forcedcalc);
+            in.setColors(clrs);
+        }else if(source.startsWith("drawing")){
+            Drawing dr = new Drawing(clrs, x, y, sand, size, iterations, version, forcedcalc, source.split("-")[1]); //source of drawing: input/list/pics(list)...
+            dr.makeGraphics();
+            dr.loadInstant();
+        }
         f.dispose();
+    }
+    
+    private void setDefault(){
+        clrs[0] = -16777216;
+        clrs[1] = -10092504;
+        clrs[2] = -6750174;
+        clrs[3] = -65536;
+        for(int i = 0; i<4; i++){
+            for(int j = 0; j<3; j++){
+                jtfs[j][i].setText(String.valueOf((clrs[i] >> (2-j)*8) & 255));
+            } 
+            updateColor(i);
+        }
     }
     
     private void updateColor(int color){
@@ -55,72 +81,6 @@ public class Options
         
         jls[color].setBackground(new Color(red,green,blue));
         clrs[color] = new Color(red, green, blue).getRGB();
-        in.setColors(clrs);
-    }
-    
-    private void makePanels(){
-        jp = new JPanel(new GridLayout(1,6,5,5));
-        
-        jb = new JButton("Back");
-        jb.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){back();}});
-        jp.add(jb);
-        
-        jl = new JLabel("Red:");
-        jp.add(jl);
-        jl = new JLabel("Green:");
-        jp.add(jl);
-        jl = new JLabel("Blue:");
-        jp.add(jl);
-        
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbl.setConstraints(jp, gbc);
-        f.add(jp);
-        
-        
-        for(int i = 0; i<4; i++){
-            gbc.gridx = 0;
-            gbc.gridy = 0;
-            gbc.gridwidth = 1;
-            gbc.gridheight = 1;
-            jp = new JPanel(gbl);
-            jl = new JLabel("Color for "+String.valueOf(i)+":");
-            gbl.setConstraints(jl, gbc);
-            jp.add(jl);
-            
-            gbc.gridx = 1;
-            jls[i] = new JLabel("X");
-            jls[i].setVisible(true);
-            jls[i].setBackground(new Color(clrs[i]));
-            gbl.setConstraints(jls[i], gbc);
-            jp.add(jls[i]);
-            
-            gbc.gridx = 5;
-            jb = new JButton("Ok");
-            gbl.setConstraints(jb, gbc);
-            jp.add(jb);
-            
-            for(int j = 0; j<3; j++){
-                /**
-                clrs[i] >> 16 // red
-                clrs[i] >> 8  // green
-                clrs[i] >> 0  // blue
-                
-                (clrs[i] >> (2-j)*8) & 255 --> correct color 
-                */
-                jtfs[j][i] = new JTextField(String.valueOf((clrs[i] >> (2-j)*8) & 255),3);
-                //jtfs[j][i].setActionCommand(String.valueOf(j)+String.valueOf(i));
-                addActionListener(j,i);
-                gbc.gridx = j+2;
-                gbl.setConstraints(jtfs[j][i], gbc);
-                jp.add(jtfs[j][i]);
-            } 
-            
-            gbc.gridx = 0;
-            gbc.gridy = i+1;
-            gbl.setConstraints(jp, gbc);
-            f.add(jp);
-        }
     }
     
     private void addActionListener(int j, int i){
@@ -129,49 +89,53 @@ public class Options
     }
     
     private void makeFrame(){
-        gbl = new GridBagLayout();
-        gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 1;
-        gbc.gridheight = 1;
-        gbc.insets = new Insets(5,5,5,5);
-        gbc.fill = GridBagConstraints.BOTH;
-        gbc.anchor = GridBagConstraints.FIRST_LINE_START;
-        
         f = new JFrame("Options");
         f.setBounds(50,50,100,100);
         f.setVisible(false);
         f.setResizable(false);
-        f.setLayout(gbl);
+        f.setLayout(new BorderLayout(10,10));
         
-        makePanels();/**
-        jp = new JPanel(gbl);
-        jl = new JLabel("Color for 0:");
-        gbl.setConstraints(jl, gbc);
-        jp.add(jl);
-        /**
-        jtf00 = new JTextField("");
-        jtf00.setActionCommand("00");
-        gridy = 1;
-        gbl.setConstraints(jtf00, gbc);
-        jp.add(jtf00);
+        JPanel jp = new JPanel(new GridLayout(5,6,5,5));
         
-        jtf01 = new JTextField("");
-        jtf01.setActionCommand("01");
-        gridy = 2;
-        gbl.setConstraints(jtf01, gbc);
-        jp.add(jtf01);
+        jb = new JButton("Back");
+        jb.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){back();}});
+        jp.add(jb);
         
-        jtf02 = new JTextField("");
-        jtf02.setActionCommand("02");
-        gridy = 3;
-        gbl.setConstraints(jtf02, gbc);
-        jp.add(jtf02);
-        *//**
-        jb = new JButton("Ok");
-        jb.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){updateColor(0);}});*/
+        jb = new JButton("Default");
+        jb.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){setDefault();}});
+        jp.add(jb);
         
+        jb = new JButton("Confirm");
+        jb.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){for(int i = 0; i<4; i++){updateColor(i);}}});
+        jp.add(jb);
+        
+        jp.add(new JLabel("Red:"));
+        jp.add(new JLabel("Green:"));
+        jp.add(new JLabel("Blue:"));
+        
+        for(int i = 0; i<4; i++){
+            jp.add(new JLabel("Color for "+String.valueOf(i)+":"));
+            
+            jls[i] = new JLabel();
+            jls[i].setBackground(new Color(clrs[i]));
+            jls[i].setOpaque(true);
+            jp.add(jls[i]);
+            
+            jb = new JButton("Ok");
+            jp.add(jb);
+            
+            for(int j = 0; j<3; j++){
+                jtfs[j][i] = new JTextField(String.valueOf((clrs[i] >> (2-j)*8) & 255));
+                addActionListener(j,i);
+                jp.add(jtfs[j][i]);
+            } 
+        }
+        
+        f.add(new JLabel(), "North");
+        f.add(new JLabel(), "South");
+        f.add(new JLabel(), "East");
+        f.add(new JLabel(), "West");
+        f.add(jp, "Center");
         f.pack();
         f.setVisible(true);
     }

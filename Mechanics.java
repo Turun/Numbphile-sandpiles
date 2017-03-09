@@ -2,9 +2,9 @@
 public class Mechanics extends Thread
 {
     Drawing dr;
-    WaitWindow ww;
     DirSearch dir;
     FileWriter fw;
+    WaitWindow ww;
     
     int pile[];
     int xlength;
@@ -16,10 +16,16 @@ public class Mechanics extends Thread
     boolean forcedcalc;
     String origin;
     
+    int operationmode;
+    String filename;
+    int expectedIterations;
+    
     boolean save;
     boolean close;
     
-    public Mechanics(int x, int y, int sand, int size, boolean forcedcalc, String origin, int[] clrs){
+    public Mechanics(int[] clrs, int x, int y, int sand, int size, boolean forcedcalc, String origin){
+        //System.out.println("Mechanics (initialising): "+Thread.currentThread().getName());
+        
         this.xlength = x;
         this.ylength = y;
         this.sand = sand;
@@ -33,52 +39,56 @@ public class Mechanics extends Thread
         
         pile = new int[xlength*ylength];
         
-        dir = new DirSearch();
-        int expectedIterations = dir.checkPic(xlength,ylength,sand,size);
-        String filenameIncomplete = dir.getUncompletedName(xlength, ylength, sand, size);
-        String filenameSmaller = dir.getNextSmallerPic(xlength, ylength, sand, size);
+    }
+    
+    public void run(){
+        //System.out.println();
+        //System.out.println("Mechanics (running): "+Thread.currentThread().getName());
+        //System.out.println(operationmode);
+        //System.out.println(filename);
+        //System.out.println(expectedIterations);
+        //System.out.println();
         
-        /**
-         * forcedcalc                           true/false
-         * filename (incomplete)                foundNothing / filename
-         * expectedIterations (finished pic)    0 / !0
-         * filename (smaller)                   0-0-0-0-0.png / filename
-         * 
-         *                                      ______________________||____________________
-         *                                     /                                            \
-         *ei:                         ________0________                                      !0
-         *                           /                 \                                     ||
-         *fnI              ____foundN_____              name                              load, pic
-         *                /               \              ||
-         *fc        _false_               true       load, calc   
-         *         /       \               ||  
-         *fnS    000        name          calc
-         *       ||          ||
-         *      calc    load, read, calc
-         */
         
-        if(expectedIterations >= 0){
-            //System.out.println("0");
-            loadInstant(expectedIterations);
-        }else{
-            if(filenameIncomplete.equals("foundNothing")){
-                if(forcedcalc){
-                    //System.out.println("1");
-                    calculate();
-                }else{
-                    if(filenameSmaller.equals("0-0-0-0-0.png")){
-                        //System.out.println("2");
-                        calculate();
-                    }else{
-                        //System.out.println("3");
-                        makeFromSmaller(expectedIterations, filenameSmaller);
-                    }
-                }
-            }else{
-                //System.out.println("4");
-                makeFromUncompleted(filenameIncomplete);
+        switch(operationmode){
+            case(0):{
+                //System.out.println("Mechanics - run - switch - 0");
+                setSand();
+                break;
+            }
+            case(1):{
+                //System.out.println("Mechanics - run - switch - 1");
+                makeFromUncompleted();
+                break;
+            }
+            case(2):{
+                //System.out.println("Mechanics - run - switch - 2");
+                makeFromSmaller();
+                break;
+            }
+            default:{
+                System.out.println("unexpected state: " + String.valueOf(operationmode));
+                break;
             }
         }
+        iterate();
+    }
+    
+    public void setMode(String... mode){
+        operationmode = mode.length;
+        if(operationmode == 0){ // calculate everyhting
+        }else if(operationmode == 1){ // makeFromUncompleted (filename)
+            filename = mode[0];
+        } else if(operationmode == 2){ //makeFromSmaller (expexted iterations, filename)
+            expectedIterations = Integer.valueOf(mode[0]);
+            filename = mode[1];
+        }else{
+            System.out.println("ooooops");
+        }
+    }
+    
+    public void setWW(WaitWindow ww){
+        this.ww = ww;
     }
     
     private void setSand(){
@@ -105,30 +115,17 @@ public class Mechanics extends Thread
         }
     }
     
-    private void calculate(){
-        setSand();
-        ww = new WaitWindow(this);
-        ww.start();
-        iterate();
-    }
-    
-    private void loadInstant(int expectedIterations){
-        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc, origin, clrs);
-        dr.makeGraphics();
-        dr.loadInstant();
-    }
-    
-    private void makeFromUncompleted(String filename){
-        ww = new WaitWindow(this);
-        ww.start();
+    private void makeFromUncompleted(){
+        
+        dir = new DirSearch();
         pile = dir.getUncompletedArray(filename);
         dir = null;
         iterations = Integer.valueOf(filename.split("-")[4].split("\\.")[0]);
-        iterate();
     }
     
-    private void makeFromSmaller(int expectedIterations, String filename){
-        dr = new Drawing(xlength, ylength, sand, size, expectedIterations, forcedcalc, origin, clrs);
+    private void makeFromSmaller(){
+        
+        dr = new Drawing(clrs, xlength, ylength, sand, size, expectedIterations, 0, forcedcalc, origin);
         int[][] helparr = dr.readArray(filename);
         //System.out.println(filename);
         dr = null;
@@ -138,10 +135,6 @@ public class Mechanics extends Thread
         setSand();
         sand += Integer.valueOf(filename.split("-")[2]);
         iterations = Integer.valueOf(filename.split("-")[4].split("\\.")[0])-1;
-        
-        ww = new WaitWindow(this);
-        ww.start();
-        iterate();
     }
     
     private void mergeGrids(int[][] toMerge){
@@ -174,6 +167,7 @@ public class Mechanics extends Thread
         fw = new FileWriter(this);
         while(distribute()){
             if(save){
+                //System.out.println("Mechanics (saving): "+Thread.currentThread().getName());
                 save = false;
                 saveToFile();
             }
@@ -185,11 +179,13 @@ public class Mechanics extends Thread
         }else{
             fw.deleteFile();
             
+            
             ww.updating = false;
             ww.closeWaitWindow();
             ww.makeDrawWindow();
             
-            dr = new Drawing(xlength, ylength, sand, size, iterations, forcedcalc, origin, clrs);
+            
+            dr = new Drawing(clrs, xlength, ylength, sand, size, iterations, 0, forcedcalc, origin);
             dr.makeGraphics();
             update();
             if(sand > 1000000){
@@ -198,7 +194,6 @@ public class Mechanics extends Thread
             
             ww.closeDrawWindow();
         }
-        ww.closeWaitWindow();
         fw = null;
     }
     
@@ -220,26 +215,10 @@ public class Mechanics extends Thread
         int val = pile[x];
         pile[x] = val % 4;
         int i = (int)(val * 0.25);
-        try{
-            if(x % xlength != 0){
-                pile[x-1] += i;
-            }
-            if(x % xlength != xlength-1){
-                pile[x+1] += i;
-            }
-            if(x >= xlength){
-                pile[x-xlength] += i;
-            }
-            if(x < xlength*(ylength-1)){
-                pile[x+xlength] += i;
-            }
-        }catch(ArrayIndexOutOfBoundsException ex){
-            System.out.println("Error: x = "+ String.valueOf(x) +"; i = "+ String.valueOf(i));
-        }catch(IllegalArgumentException e){
-            System.out.println("COMP ERROR: x = "+String.valueOf(x)+" i = "+String.valueOf(i));
-        }catch(Exception ex){
-            System.out.println(ex);
-        }
+        if(x % xlength != 0)        {pile[x-1]       += i;}
+        if(x % xlength != xlength-1){pile[x+1]       += i;}
+        if(x >= xlength)            {pile[x-xlength] += i;}
+        if(x < xlength*(ylength-1)) {pile[x+xlength] += i;}
     }
     
     private void update(){

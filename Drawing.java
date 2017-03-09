@@ -21,6 +21,7 @@ import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
 
 import java.awt.FlowLayout;
+import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
@@ -30,6 +31,8 @@ import java.io.RandomAccessFile;
 import java.io.FileOutputStream;
 import java.io.File;
 import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 public class Drawing extends MouseAdapter implements KeyListener
 {
@@ -68,19 +71,21 @@ public class Drawing extends MouseAdapter implements KeyListener
     int size;
     int[] clrs;
     int iterations;
+    int version;
     boolean forcedcalc;
     String origin;
     
     int width;
     int height;
     
-    public Drawing(int x, int y, int sand, int size, int iterations, boolean forcedcalc, String origin, int[] clrs){
+    public Drawing(int[] clrs, int x, int y, int sand, int size, int iterations, int version, boolean forcedcalc, String origin){
         this.size = size;
         this.sand = sand;
         this.xlength = x;
         this.ylength = y;
         this.origin = origin;
         this.iterations = iterations;
+        this.version = version;
         this.forcedcalc = forcedcalc;
         this.zero   = clrs[0];
         this.one    = clrs[1];
@@ -123,25 +128,34 @@ public class Drawing extends MouseAdapter implements KeyListener
         jsp.paintImmediately(jsp.getBounds());
     }
     
-    public void makeBufferedImage(){
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.gridwidth = 7;
-        gbc.gridheight = 7;
-        gbc.insets = new Insets(5,5,5,5);
-        gbc.fill = GridBagConstraints.BOTH;
-        
-        if(img == null | f == null){makeGraphics();}
-        bild = new JLabel(new ImageIcon(img));
-        bild.setAutoscrolls(true);
-        bild.addMouseListener(this);
-        bild.addMouseMotionListener(this);
-        
-        jsp = new JScrollPane(bild, JScrollPane.VERTICAL_SCROLLBAR_NEVER, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        jsp.setPreferredSize(new Dimension(600,600));
-        
-        gbl.setConstraints(jsp, gbc);
-        f.getContentPane().add(jsp);
+    private void saveAsImage(){
+        saveImage();
+        try{
+            File dir = new File("pics");
+            
+            String filename = "";
+            filename += String.valueOf(xlength) + "-";
+            filename += String.valueOf(ylength) + "-";
+            filename += String.valueOf(sand) + "-";
+            filename += String.valueOf(size) + "-";
+            filename += String.valueOf(iterations);
+            File[] all = dir.listFiles();
+            
+            int recordVersion = 0;
+            for(File f: all){
+                if(f.getName().startsWith(filename)){
+                    int version = Integer.valueOf(f.getName().split("\\.")[0].split("-")[5]);
+                    if(version>recordVersion){
+                        recordVersion = version;
+                    }
+                }
+            }
+            
+            filename ="pics/"+filename+ "-"+String.valueOf(recordVersion+1)+".png";
+            ImageIO.write(img, "PNG", new File(filename));
+        }catch(IOException e){
+            System.out.println(e);
+        }
     }
     
     public void saveImage(){
@@ -152,8 +166,8 @@ public class Drawing extends MouseAdapter implements KeyListener
         for(int i = 0; i<byteOutArr.length; i++){byteOutArr[i] = 0;}
         
         int iterator = 0;
-        for(int col = 0; col<xlength; col++){
-            for(int row = 0; row<ylength; row++){
+        for(int row = 0; row<ylength; row++){
+            for(int col = 0; col<xlength; col++){
                 int color = img.getRGB(col*size,row*size);
                 byte value = 0;
                 if(color == one){value = 1;}
@@ -164,12 +178,12 @@ public class Drawing extends MouseAdapter implements KeyListener
             }
         }
         
-        String filename = "pics/";
+        String filename = "encodedPics/";
         filename += String.valueOf(xlength) + "-";
         filename += String.valueOf(ylength) + "-";
         filename += String.valueOf(sand) + "-";
         filename += String.valueOf(size) + "-";
-        filename += String.valueOf(iterations) + ".png";
+        filename += String.valueOf(iterations) + ".bin";
         
         try(FileOutputStream out = new FileOutputStream(filename)){
             out.write(byteOutArr);
@@ -180,12 +194,12 @@ public class Drawing extends MouseAdapter implements KeyListener
     }
     
     public void loadInstant(){
-        String filename = "pics/";
+        String filename = "encodedPics/";
         filename += String.valueOf(xlength) + "-";
         filename += String.valueOf(ylength) + "-";
         filename += String.valueOf(sand) + "-";
         filename += String.valueOf(size) + "-";
-        filename += String.valueOf(iterations) + ".png";
+        filename += String.valueOf(iterations) + ".bin";
         File fileToRead = new File(filename);
         
         try(RandomAccessFile raf = new RandomAccessFile(filename, "r")){  
@@ -204,6 +218,63 @@ public class Drawing extends MouseAdapter implements KeyListener
         }
         makeBufferedImage();
         repaint();
+    }
+    
+    public void loadImage(int version){
+        this.version = version;
+        
+        String filename = "pics/";
+        filename += String.valueOf(xlength) + "-";
+        filename += String.valueOf(ylength) + "-";
+        filename += String.valueOf(sand) + "-";
+        filename += String.valueOf(size) + "-";
+        filename += String.valueOf(iterations) + "-";
+        filename += String.valueOf(version) + ".png";
+        File fileToRead = new File(filename);
+        try{
+           img = ImageIO.read(fileToRead); 
+        }catch(IOException e){
+            System.out.println(e);
+            System.out.println(filename);
+        }
+        makeBufferedImage();
+        repaint();
+    }
+    
+    private void extractColors(){
+        String filename = "encodedPics/";
+        filename += String.valueOf(xlength) + "-";
+        filename += String.valueOf(ylength) + "-";
+        filename += String.valueOf(sand) + "-";
+        filename += String.valueOf(size) + "-";
+        filename += String.valueOf(iterations) + ".bin";
+        File fileToRead = new File(filename);
+        
+        if(img == null){makeBufferedImage();}
+        if(clrs == null){clrs = new int[4];}
+        byte[] inArr;
+        byte colorRead = 0;
+        try(RandomAccessFile raf = new RandomAccessFile(filename, "r")){  
+            inArr = new byte[(int)(fileToRead.length())];
+            raf.readFully(inArr);
+            
+            for(int i = 0; i<inArr.length*4; i++){
+                byte value = (byte)((inArr[(int)(i/4)] >> ((3-(i%4))*2)) & 3);
+                if(value == colorRead){
+                    clrs[colorRead] = img.getRGB((i%xlength)*size, ((int)(i/xlength))*size);
+                    colorRead++;
+                }
+                if(colorRead >3){break;}
+            }
+            zero = clrs[0];
+            one = clrs[1];
+            two = clrs[2];
+            three = clrs[3];
+        }catch(Exception e){//catch(IOException e){
+            System.out.println(e);
+            e.printStackTrace();
+            redirectToNewFrame();
+        }
     }
     
     public int[][] readArray(String filename){
@@ -233,7 +304,6 @@ public class Drawing extends MouseAdapter implements KeyListener
         return re;
     }
     
-    
     public void makeGraphics(){
         gbl = new GridBagLayout();
         gbc = new GridBagConstraints();
@@ -246,7 +316,7 @@ public class Drawing extends MouseAdapter implements KeyListener
         f.setLocation(20,20);
         f.setSize(width,height);
         f.setVisible(false);
-        f.setResizable(true);
+        f.setResizable(false);
         f.setLayout(gbl);
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         f.setIconImage(new ImageIcon(getClass().getResource("pics/picDone.png")).getImage());
@@ -257,7 +327,7 @@ public class Drawing extends MouseAdapter implements KeyListener
         gbc.gridy = 0;
         gbc.gridwidth = 1;
         gbc.gridheight = 1; //  = 7;
-        gbc.fill = GridBagConstraints.BOTH;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.FIRST_LINE_START;
         gbc.insets = new Insets(5,5,5,5);
         
@@ -267,67 +337,140 @@ public class Drawing extends MouseAdapter implements KeyListener
         f.add(back);
         
         gbc.gridy = 1;
-        photo = new JButton("Save Image");
+        JButton options = new JButton("Options");
+        gbl.setConstraints(options, gbc);
+        f.add(options);
+        
+        gbc.gridy = 2;
+        photo = new JButton("Save");
         gbl.setConstraints(photo, gbc);
         f.add(photo);
         
-        gbc.gridy = 2;
+        gbc.gridy = 3;
+        JButton saveAsImage = new JButton("Save as image");
+        gbl.setConstraints(saveAsImage, gbc);
+        f.add(saveAsImage);
+        
+        gbc.gridy = 4;
+        JButton extractColors = new JButton("Extract Colors");
+        gbl.setConstraints(extractColors, gbc);
+        f.add(extractColors);
+        
+        gbc.gridy = 5;
+        JButton viewPictures = new JButton("View Pictures");
+        gbl.setConstraints(viewPictures, gbc);
+        f.add(viewPictures);
+        
+        gbc.gridy = 6;
+        JButton viewCompleted = new JButton("View Completed");
+        gbl.setConstraints(viewCompleted, gbc);
+        f.add(viewCompleted);
+        
+        
+        gbc.gridy = 15;
         JLabel label = new JLabel("Iterations: "+String.valueOf(iterations));
         gbl.setConstraints(label, gbc);
         f.add(label);
         
-        gbc.gridy = 3;
+        gbc.gridy = 16;
         label = new JLabel("x: "+String.valueOf(xlength));
         gbl.setConstraints(label, gbc);
         f.add(label);
         
-        gbc.gridy = 4;
+        gbc.gridy = 17;
         label = new JLabel("y: "+String.valueOf(ylength));
         gbl.setConstraints(label, gbc);
         f.add(label);
         
-        gbc.gridy = 5;
+        gbc.gridy = 18;
         label = new JLabel("Sand: "+String.valueOf(sand));
         gbl.setConstraints(label, gbc);
         f.add(label);
         
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.gridy = 6;
+        gbc.gridy = 19;
         label = new JLabel("Size: "+String.valueOf(size));
         gbl.setConstraints(label, gbc);
         f.add(label);
+        
+        if(version > 0){
+            gbc.gridy = 20;
+            label = new JLabel("Version: "+String.valueOf(version));
+            gbl.setConstraints(label, gbc);
+            f.add(label);
+        }
         
         makeBufferedImage();
         
         repaint();
         f.setVisible(true);
         
-        back.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent e){
-                redirectToNewFrame();
-            }
-        });
+        back.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e)         {redirectToNewFrame(); }});
+        options.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e)      {openOptions();        }});
+        photo.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e)        {saveImage();          }});
+        saveAsImage.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e)  {saveAsImage();        }});
+        extractColors.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){extractColors();      }});
+        viewPictures.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e) {viewPictures();       }});
+        viewCompleted.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){viewCompleted();      }});
+    }
+    
+    public void makeBufferedImage(){
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.gridwidth = 21;
+        gbc.gridheight = 21;
+        gbc.insets = new Insets(5,5,5,5);
+        gbc.fill = GridBagConstraints.BOTH;
         
-        photo.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent e){
-                saveImage();
-            }
-        });
+        if(img == null | f == null){makeGraphics();}
+        bild = new JLabel(new ImageIcon(img));
+        bild.setAutoscrolls(true);
+        bild.addMouseListener(this);
+        bild.addMouseMotionListener(this);
+        
+        jsp = new JScrollPane(bild, JScrollPane.VERTICAL_SCROLLBAR_NEVER, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        jsp.setPreferredSize(new Dimension(600,600));
+        
+        gbl.setConstraints(jsp, gbc);
+        f.getContentPane().add(jsp);
+    }
+    
+    private void viewPictures(){
+        f.setVisible(false);
+        img = null;
+        int[] clrs = {zero, one, two ,three};
+        f.dispose();
+        List li = new List(clrs, xlength, ylength, sand, size, iterations, version, forcedcalc, "pics-drawing-"+origin);
+    }
+    
+    private void viewCompleted(){
+        f.setVisible(false);
+        img = null;
+        int[] clrs = {zero, one, two ,three};
+        f.dispose();
+        List li = new List(clrs, xlength, ylength, sand, size, iterations, version, forcedcalc, "encodedPics-drawing-"+origin);
+    }
+    
+    private void openOptions(){
+        extractColors();
+        
+        f.setVisible(false);
+        f.dispose();
+        String source = "drawing-" + origin;
+        int[] clrs = {zero, one, two ,three};
+        Options opt = new Options(clrs, xlength, ylength, sand, size, iterations, version, forcedcalc, source);
     }
     
     private void redirectToNewFrame(){
         f.setVisible(false);
         img = null;
-        f = null;
         int[] clrs = {zero, one, two ,three};
+        f.dispose();
         if(origin.equals("input")){
             Input in = new Input();
             in.setValues(xlength, ylength, sand, size, forcedcalc);
             in.setColors(clrs);
-        }else if(origin.equals("pics")){
-            List li = new List(false, xlength, ylength, sand, size, forcedcalc, clrs);
-        }else if(origin.equals("incomplete")){
-            List li = new List(true, xlength, ylength, sand, size, forcedcalc, clrs);
+        }else{
+            List li = new List(clrs, xlength, ylength, sand, size, iterations, version, forcedcalc, origin);
         }
     }
     

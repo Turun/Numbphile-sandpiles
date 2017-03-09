@@ -12,7 +12,7 @@ public class DirSearch{
     
     
     public DirSearch(){
-        picDir = new File("pics");
+        picDir = new File("encodedPics");
         picList = picDir.listFiles();
         for(int i = 0; i<picList.length; i++){
             fillList(picList[i]);
@@ -56,6 +56,7 @@ public class DirSearch{
     }
     
     public int[] getUncompletedArray(String filename){
+        System.out.println(filename);
         int x = Integer.valueOf(filename.split("-")[0].split("/")[1]);
         int y = Integer.valueOf(filename.split("-")[1]);
         int[] re = new int[x*y];
@@ -123,12 +124,12 @@ public class DirSearch{
             }
         }
         
-        String re = "pics/";
+        String re = "encodedPics/";
         re += String.valueOf(record[0]) + "-";
         re += String.valueOf(record[1]) + "-";
         re += String.valueOf(record[2]) + "-";
         re += String.valueOf(record[3]) + "-";
-        re += String.valueOf(record[4]) + ".png";
+        re += String.valueOf(record[4]) + ".bin";
         return re;
     }
     

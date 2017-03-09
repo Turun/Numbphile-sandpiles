@@ -3,6 +3,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.JTextArea;
 import javax.swing.ImageIcon;
 
 import java.awt.Dimension;
@@ -22,24 +23,8 @@ public class Input
     JTextField tfs;     //size of labels
     
     JFrame f;
-    JPanel inpt;
-    JPanel buttons;/**
-    JButton bx;
-    JButton by;
-    JButton bn;
-    JButton bs;
-    JButton boptions;
-    JButton bdefault;
-    JButton bcreate;
-    JButton bList;
-    JButton bPics;*/
     JCheckBox cb;
     
-    GridBagLayout gbl;
-    GridBagConstraints gbc;
-    
-    Mechanics mech;
-    List list;
     
     int size;
     int x;
@@ -48,15 +33,16 @@ public class Input
     int[] clrs = {-16777216, -10092504, -6750174, -65536};
     boolean forcedcalc;
     
+    
     public Input(){
-        gbl = new GridBagLayout();
-        gbc = new GridBagConstraints();
+        GridBagLayout gbl = new GridBagLayout();
+        GridBagConstraints gbc = new GridBagConstraints();
         
         f = new JFrame("");
         f.setBounds(200,200,304,225);
         f.setVisible(false);
         f.setLayout(gbl);
-        f.setResizable(true);
+        f.setResizable(false);
         try{f.setIconImage(new ImageIcon(getClass().getResource("pics/picDone.png")).getImage());}
         catch(NullPointerException ex){}
         
@@ -69,7 +55,7 @@ public class Input
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.FIRST_LINE_START;
         
-        inpt = new JPanel();
+        JPanel inpt = new JPanel();
         inpt.setLayout(gbl);
         
         gbc.gridwidth = 4;
@@ -126,28 +112,42 @@ public class Input
         gbl.setConstraints(boptions, gbc);
         inpt.add(boptions);
         
-        buttons = new JPanel();
+        JPanel buttons = new JPanel();
         buttons.setLayout(gbl);
-        gbc.gridx = 0;
-        gbc.gridy = 0;
         gbc.gridwidth = 1;
         
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        JButton bHelp = new JButton("Help");
+        gbl.setConstraints(bHelp, gbc);
+        buttons.add(bHelp);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 0;
         JButton bList = new JButton("Complete an old one");
         gbl.setConstraints(bList, gbc);
         buttons.add(bList);
         
+        gbc.gridx = 0;
         gbc.gridy = 1;
-        JButton bdefault = new JButton("Default");
-        gbl.setConstraints(bdefault, gbc);
-        buttons.add(bdefault);
+        JButton bPhotos = new JButton("View pictures");
+        gbl.setConstraints(bPhotos, gbc);
+        buttons.add(bPhotos);
         
-        gbc.gridy = 0;
         gbc.gridx = 1;
+        gbc.gridy = 1;
         JButton bPics = new JButton("View completed");
         gbl.setConstraints(bPics, gbc);
         buttons.add(bPics);
         
-        gbc.gridy = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        JButton bdefault = new JButton("Default");
+        gbl.setConstraints(bdefault, gbc);
+        buttons.add(bdefault);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 2;
         JButton bcreate = new JButton("Create");
         gbl.setConstraints(bcreate, gbc);
         buttons.add(bcreate);
@@ -220,11 +220,16 @@ public class Input
                 create();}});
         
         bList.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
-                makeList(true);}});
+                makeList("incomplete");}});
         
         bPics.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
-                makeList(false);}});
+                makeList("encodedPics");}});
         
+        bHelp.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
+                makeHelpFrame();}});
+        
+        bPhotos.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){
+                makeList("pics");}});
     }
     
     private void getx(){
@@ -313,11 +318,11 @@ public class Input
         if(x>0 & y>0 & sand>0 & size>0){
             f.setVisible(false);
             f.dispose();
-            mech = new Mechanics(x, y, sand, size, forcedcalc, "input", clrs);
+            Chooser cho = new Chooser(clrs, x, y, sand, size, forcedcalc, "input");
         }
     }
     
-    private void makeList(boolean incomplete){
+    private void makeList(String dir){
         getx();
         gety();
         getsand();
@@ -326,11 +331,19 @@ public class Input
         
         f.setVisible(false);
         f.dispose();
-        list = new List(incomplete, x, y, sand, size, forcedcalc, clrs);
+        List list = new List(clrs, x, y, sand, size, 0, 0, forcedcalc, dir);
     }
     
     private void makeOptions(){
-        Options opt = new Options(clrs, this);
+        getx();
+        gety();
+        getsand();
+        getsize();
+        forcedcalc = cb.isSelected();
+        
+        f.setVisible(false);
+        f.dispose();
+        Options opt = new Options(clrs, x, y, sand, size, 0, 0, forcedcalc, "input");
     }
     
     private void suggestSand(){
@@ -364,6 +377,23 @@ public class Input
         y = (int)help;
         tfx.setText(String.valueOf(x));
         tfy.setText(String.valueOf(y));
+    }
+    
+    private void makeHelpFrame(){
+        String helpText = "";
+        helpText += "this and "; 
+        helpText += "that and ";
+        helpText += "here";
+        
+        JFrame frame = new JFrame("Description");
+        frame.setBounds(100,100,100,100);
+        JTextArea jta = new JTextArea();
+        jta.setWrapStyleWord(true);
+        jta.setEditable(false);
+        jta.setText(helpText);
+        frame.add(jta);
+        frame.pack();
+        frame.setVisible(true);
     }
     
     public static void main(String[] args){

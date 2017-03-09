@@ -4,6 +4,8 @@ import javax.swing.JPanel;
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 
+import javax.imageio.ImageIO;
+
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
@@ -12,19 +14,31 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.EventQueue;
 
-//import java.io.PrintWriter;
+//import java.util.Timer;
+//import java.util.TimerTask;
 
-public class WaitWindow extends Thread
+import java.io.File;
+import java.io.IOException;
+
+public class WaitWindow
 {
+    //Timer timer;
+    //TimerTask action;
+    //public void printThreadName(){
+    //    System.out.println("Ww (saving / timer): "+Thread.currentThread().getName());
+    //}
+    
     
     private JFrame calc;
     private JFrame draw;
     
-    JLabel[][] lbs;
+    private JLabel[][] lbs;
     
     private JPanel jp;
     
     private Mechanics mech;
+    private Ticker ticker;
+    
     int x;
     int y;
     int sand;
@@ -35,39 +49,37 @@ public class WaitWindow extends Thread
     
     public WaitWindow(Mechanics mech)
     {
+        //System.out.println("Ww (initialising): "+Thread.currentThread().getName());
+        
         this.mech = mech;
         this.x = mech.xlength;
         this.y = mech.ylength;
         this.sand = mech.sand;
         this.size = mech.size;
+        this.ticker = new Ticker();
+        
+        //action = new TimerTask(){public void run(){printThreadName();}};
+        //timer = new Timer();
+        //timer.scheduleAtFixedRate(action, 1000L, 1000L);
     }
     
-    public void run(){
-        //SwingUtilities.invokeLater(new Runnable(){public void run(){
-            makeWaitWindow();
-        //}});
+    public void start(){
+        //System.out.println("Ww (starting): "+Thread.currentThread().getName());
         
-        
-        int i = 0;
-        while(updating){
-            update();
-            if(iterations - i > 10000){
-                i = iterations;
-                mech.save = true;
+        makeWaitWindow();
+        ticker.start();
+    }
+    
+    public  void update(){
+        SwingUtilities.invokeLater(new Runnable(){
+            public void run(){
+                lbs[1][1].setText(String.valueOf(iterations = mech.iterations));
+                for(int i = 0; i<6; i++){
+                    jp.paintImmediately(lbs[0][i].getBounds());
+                    jp.paintImmediately(lbs[1][i].getBounds());
+                }
             }
-            try{
-                this.sleep(70);
-            }catch(InterruptedException e){}
-        }
-        calc.dispose();
-    }
-    
-    private void update(){
-        lbs[1][1].setText(String.valueOf(iterations = mech.iterations));
-        for(int i = 0; i<6; i++){
-            jp.paintImmediately(lbs[0][i].getBounds());
-            jp.paintImmediately(lbs[1][i].getBounds());
-        }
+        });
     }
     
     public void closeDrawWindow(){
@@ -81,19 +93,24 @@ public class WaitWindow extends Thread
     public void makeDrawWindow(){
         draw = new JFrame("Drawing...");
         draw.setBounds(400,300,300,300);
-        try{draw.setIconImage(new ImageIcon(getClass().getResource("pics/picDraw.png")).getImage());} //picDraw
-        catch(NullPointerException ex){}
+        try{
+            draw.setIconImage(new ImageIcon(getClass().getResource("pics/picDraw.png")).getImage());
+            draw.add(new JLabel(new ImageIcon(ImageIO.read(new File("pics/picDraw.png")))));
+        }catch(NullPointerException ex){}
+        catch(IOException e){}
         draw.setResizable(false);
         draw.setVisible(true);
         draw.requestFocus();
     }
-    /**
+    
     private void beenden(){
-        System.out.println("closing...");
+        //System.out.println("Ww (closing): "+Thread.currentThread().getName());
+        //System.out.println("closing...");
         mech.close = true;
         closeWaitWindow();
-    }*/
-    /* */
+        ticker = null;
+    }
+    
     private void makeWaitWindow(){
         GridBagLayout gbl = new GridBagLayout();
         GridBagConstraints gbc = new GridBagConstraints();
@@ -102,9 +119,18 @@ public class WaitWindow extends Thread
         calc.setVisible(false);
         calc.setResizable(false);
         calc.setLayout(gbl);
-        calc.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); //(beenden());
+        calc.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); //(beenden());
         calc.setIconImage(new ImageIcon(getClass().getResource("pics/picCalc.png")).getImage());
-        //calc.addWindowListener(new WindowAdapter(){public void WindowClosing(WindowEvent e){System.out.println("action registered");beenden();}});
+        calc.addWindowListener(new WindowAdapter(){
+            public void WindowClosing(WindowEvent e){
+                SwingUtilities.invokeLater(new Runnable(){
+                    public void run(){
+                        //System.out.println("action registered");
+                        beenden();
+                    }
+                });
+            }
+        });
         
         
         jp = new JPanel(gbl);
@@ -122,8 +148,8 @@ public class WaitWindow extends Thread
         lbs[0][1] = new JLabel("Iterations:");
         lbs[0][2] = new JLabel("X:");
         lbs[0][3] = new JLabel("Y:");
-        lbs[0][4] = new JLabel("Sand");
-        lbs[0][5] = new JLabel("Size");
+        lbs[0][4] = new JLabel("Sand:");
+        lbs[0][5] = new JLabel("Size:");
         
         lbs[1][0] = new JLabel(String.valueOf((int)(mech.sand * 0.1)));
         lbs[1][1] = new JLabel("waiting...");
@@ -155,5 +181,30 @@ public class WaitWindow extends Thread
         calc.setVisible(true);
         calc.repaint();
         jp.update(jp.getGraphics());
+    }
+    
+    class Ticker extends Thread{
+        public Ticker(){
+            iterations = mech.iterations;
+        }
+        
+        public void run(){
+            //System.out.println("Ticker (running): "+Thread.currentThread().getName());
+            int i = 0;
+            while(updating){
+                update();
+                if(iterations - i > 5000){
+                    //System.out.println("Ticker (saving): "+Thread.currentThread().getName());
+                    i = iterations;
+                    mech.save = true;
+                    
+                    //ww.printThreadName();
+                }
+                try{
+                    this.sleep(70L);
+                }catch(InterruptedException e){}
+            }
+            closeWaitWindow();
+        }
     }
 }

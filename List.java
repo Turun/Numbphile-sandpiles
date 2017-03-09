@@ -14,7 +14,7 @@ import java.awt.BorderLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
-//import java.awt.Dimension;
+import java.awt.Dimension;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,66 +36,94 @@ public class List{
     //GridBagLayout gbl;
     //GridBagConstraints gbc;
     
-    boolean incomplete;
     boolean positiveSort;
     
     int x;
     int y;
     int sand;
     int size;
+    int iterations;
     int[] clrs;
+    String directory;
     boolean forcedcalc;
     
-    public List(boolean incomplete, int x, int y, int sand, int size, boolean forcedcalc, int[] clrs){
-        if(incomplete){
+    int version;
+    
+    public List(int[] clrs, int x, int y, int sand, int size, int iterations, int version, boolean forcedcalc, String directory){
+        if(directory.startsWith("incomplete")){
             dir = new File("./Incomplete");
-        }else{
+        }else if(directory.startsWith("encodedPics")){
+            dir = new File("./encodedPics");
+        }else if(directory.startsWith("pics")){
             dir = new File("./pics");
         }
-        this.incomplete = incomplete;
         this.x = x;
         this.y = y;
         this.sand = sand;
         this.size = size;
+        this.iterations = iterations;
+        this.version = version;
         this.clrs = clrs;
         this.forcedcalc = forcedcalc;
         this.positiveSort = true;
+        this.directory = directory;
         
-        main = new JPanel(new GridLayout(0,6,5,5));
-        header = new JPanel(new GridLayout(1,6,5,5));
+        if(directory.startsWith("pics")){
+            main = new JPanel(new GridLayout(0,7,5,5));
+            header = new JPanel(new GridLayout(1,7,5,5));
+        }else{
+            main = new JPanel(new GridLayout(0,6,5,5));
+            header = new JPanel(new GridLayout(1,6,5,5));
+        }
         makeHeader();
-        makeList();
+        
+        fList = dir.listFiles();
+        if(directory.startsWith("pics")){
+            int iterator = 0;
+            File[] help = new File[fList.length-3];
+            for(int i = 0; i< help.length; i++){
+                if(!fList[iterator].getName().startsWith("pic")){
+                    help[i] = fList[iterator];
+                }else{
+                    iterator++;
+                }
+                iterator++;
+            }
+            fList = null;
+            fList = help;
+        }
+        
         sortList(0); //by x
         makeWindow();
     }
     
     private void openFile(int[] arr){
-        if(incomplete){
-            Mechanics mech = new Mechanics(arr[0], arr[1], arr[2], arr[3], forcedcalc, "incomplete", clrs);
-        }else{
-            Drawing dr = new Drawing(arr[0], arr[1], arr[2], arr[3], arr[4], forcedcalc, "pics", clrs);
+        f.setVisible(false);
+        
+        if(directory.startsWith("incomplete")){
+            Chooser cho = new Chooser(clrs, arr[0], arr[1], arr[2], arr[3], forcedcalc, "incomplete");
+        }else if(directory.equals("encodedPics")){
+            Drawing dr = new Drawing(clrs, arr[0], arr[1], arr[2], arr[3], arr[4], version, forcedcalc, "encodedPics");
             dr.makeGraphics();
             dr.loadInstant();
+        }else if(directory.equals("pics")){
+            Drawing dr = new Drawing(clrs, arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], forcedcalc, "pics");
+            dr.makeGraphics();
+            dr.loadImage(arr[5]);
+        }else if(directory.startsWith("encodedPics-drawing")){
+            Drawing dr = new Drawing(clrs, arr[0], arr[1], arr[2], arr[3], arr[4], version, forcedcalc, directory.split("-")[2]);
+            dr.makeGraphics();
+            dr.loadInstant();
+        }else if(directory.startsWith("pics-drawing")){
+            Drawing dr = new Drawing(clrs, arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], forcedcalc, directory.split("-")[2]);
+            dr.makeGraphics();
+            dr.loadImage(arr[5]);
+        }else{
+            System.out.println("well, looks like i fucked up...");
+            System.out.println("Error message: "+directory);
         }
-        f.setVisible(false);
-        f.dispose();
-    }
-    
-    private void makeList(){
-        fList = dir.listFiles();
         
-        /**sorts out the pics that are used for JFrame IconImages*/
-        if(!incomplete){
-            int iterator = 0;
-            File[] help = new File[fList.length-3];
-            for(File fi : fList){
-                if(!fi.getName().startsWith("pic")){
-                    help[iterator++] = fi;
-                }
-            }
-            fList = null;
-            fList = help;
-        }
+        f.dispose();
     }
     
     private void makePanel(int i){
@@ -121,11 +149,16 @@ public class List{
         l = new JLabel(String.valueOf(data[4]), JLabel.RIGHT);
         main.add(l);
         
+        if(directory.startsWith("pics")){
+            l = new JLabel(String.valueOf(data[5]), JLabel.RIGHT);
+            main.add(l);
+        }
+        
         
         JButton b = new JButton("Ok");
         b.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
-                openFile(data); //ohne endung
+                openFile(data); //without fileextension
             }
         });
         main.add(b);
@@ -152,14 +185,39 @@ public class List{
         b.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){sortList(4);makeJSP();}});
         header.add(b);
         
+        if(directory.startsWith("pics")){
+            b = new JButton("Version");
+            b.addActionListener(new ActionListener(){public void actionPerformed(ActionEvent e){sortList(5);makeJSP();}});
+            header.add(b);
+        }
+        
         back = new JButton("Back");
         back.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
+                try{
+                    if(directory.split("-")[1].equals("drawing")){
+                        Drawing dr = new Drawing(clrs, x, y, sand, size, iterations, version, forcedcalc, directory.split("-")[2]);
+                        dr.makeGraphics();
+                        if(directory.split("-")[2].equals("pics")){
+                            dr.loadImage(version);
+                        }else if(directory.split("-")[2].equals("encodedPics")){
+                            dr.loadInstant();
+                        }else{
+                            System.out.println("looks like we made an error!");
+                            System.out.println("Error message: "+directory);
+                        }
+                    }else{
+                        Input in = new Input();
+                        in.setValues(x,y,sand,size,forcedcalc);
+                        in.setColors(clrs);
+                    }
+                }catch(ArrayIndexOutOfBoundsException ex){
+                    Input in = new Input();
+                    in.setValues(x,y,sand,size,forcedcalc);
+                    in.setColors(clrs);
+                }
                 f.setVisible(false);
                 f.dispose();
-                Input in = new Input();
-                in.setValues(x,y,sand,size,forcedcalc);
-                in.setColors(clrs);
             }
         });
         header.add(back);
@@ -167,10 +225,12 @@ public class List{
     
     public void sortList(int type){
         //sort fList, call makePanel() in loop
-        for(int i = 0; i<fList.length; i++){
+        for(int i = 0; i<fList.length; i++){  //bubblesort!
             for(int a = fList.length-1; a>0; a--){
-                int var1 = Integer.valueOf(fList[a-1].getName().split("\\.")[0].split("-")[type]);
-                int var2 = Integer.valueOf(fList[a  ].getName().split("\\.")[0].split("-")[type]);
+                int var1 = 0;
+                int var2 = 0;
+                var1 = Integer.valueOf(fList[a-1].getName().split("\\.")[0].split("-")[type]);
+                var2 = Integer.valueOf(fList[a  ].getName().split("\\.")[0].split("-")[type]);
                 if(var1 > var2){
                     File help = fList[a];
                     fList[a] = fList[a-1];
@@ -181,8 +241,12 @@ public class List{
     }
     
     private void makeJSP(){
+        if(directory.startsWith("pics")){
+            main = new JPanel(new GridLayout(0,7,5,5));
+        }else{
+            main = new JPanel(new GridLayout(0,6,5,5));
+        }
         
-        main = new JPanel(new GridLayout(0,6,5,5));
         if(positiveSort){
             positiveSort = false;
             for(int i = 0; i<fList.length; i++){
@@ -208,6 +272,7 @@ public class List{
     private void makeWindow(){
         f = new JFrame("Choose a file");
         f.setLayout(new BorderLayout());
+        f.setMaximumSize(new Dimension(600, 500));
         f.setBounds(50,50,100,100);
         f.setResizable(true);
         f.setVisible(false);
